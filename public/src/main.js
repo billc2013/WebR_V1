@@ -98,31 +98,50 @@ async function handleSignOut() {
 }
 
 // Handle file upload
+// Handle file upload
 async function handleFileUpload() {
     const file = fileInput.files[0];
     if (!file) return;
-    console.log("file selected...")
-
+    console.log("file selected...");
+  
     const user = await getUser();
     if (!user) return;
-
+  
     try {
-        console.log("upload process beginngin...")
-        uploadBtn.disabled = true;
-        uploadBtn.textContent = 'Uploading...';
-
-        await uploadCSV(user.id, file, file.name);
-        await loadUserFiles(user.id);
-        
-        fileInput.value = '';  // Clear the input
-        alert('File uploaded successfully!');
+      console.log("upload process beginning...");
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading...';
+  
+      // Upload the file to Supabase Storage
+      await uploadCSV(user.id, file, file.name);
+  
+      // Insert a record into the file_uploads table
+      const { data, error } = await supabase.from('file_uploads').insert([
+        {
+          user_id: user.id,
+          file_name: file.name,
+          file_path: `csv/${user.id}/${file.name}`,
+          file_type: `csv/${user.id}/${file.file_type}`
+        },
+      ]);
+  
+      if (error) {
+        console.error('Error inserting into file_uploads:', error);
+        throw error;
+      }
+  
+      await loadUserFiles(user.id);
+  
+      fileInput.value = '';  // Clear the input
+      alert('File uploaded successfully!');
     } catch (error) {
-        alert('Upload failed: ' + error.message);
+      console.error('Upload failed:', error);
+      alert('Upload failed: ' + error.message);
     } finally {
-        uploadBtn.disabled = false;
-        uploadBtn.textContent = 'Upload';
+      uploadBtn.disabled = false;
+      uploadBtn.textContent = 'Upload';
     }
-}
+  }
 
 // Load user's files
 async function loadUserFiles(userId) {
