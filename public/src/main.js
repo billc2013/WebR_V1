@@ -1,4 +1,5 @@
 // main.js
+import { supabase } from './supabaseClient.js'
 import { signIn, signUp, signOut, getUser } from './supabase/auth.js';
 import { uploadCSV, downloadFile } from './supabase/storageService.js';
 import './components/webRRepl.js';  // Import the WebR REPL component
