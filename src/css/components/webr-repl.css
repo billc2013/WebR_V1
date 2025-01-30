@@ -1,0 +1,62 @@
+webr-repl {
+    display: block;
+    margin: 1rem 0;
+}
+
+.repl-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+.repl-output {
+    min-height: 200px;
+    max-height: 400px;
+    padding: 1rem;
+    background: #f8f9fa;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    white-space: pre-wrap;
+    overflow-y: auto;
+}
+
+.repl-input-wrapper {
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.repl-input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    resize: vertical;
+    margin-bottom: 0.5rem;
+}
+
+.run-button {
+    background: #3498db;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.run-button:hover {
+    background: #2980b9;
+}
+
+.plot-output {
+    padding: 1rem;
+    border-top: 1px solid #dee2e6;
+}
+
+.plot-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+}

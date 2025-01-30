@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebR Conservation Ecology</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Add this for WebR -->
+    <script src="https://webr.r-wasm.org/v0.2.1/webr.mjs" type="module"></script>
+    <!-- Add this for Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- Add your component styles -->
+    <link rel="stylesheet" href="src/css/components/webr-repl.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Auth container -->
+        <div id="auth-container" class="container">
+            <div id="auth-ui"></div>
+        </div>
+
+        <!-- Main container (hidden until authenticated) -->
+        <div id="main-container" class="container hidden">
+            <header>
+                <h1>Conservation Ecology R Lab</h1>
+                <button id="signout-btn" class="btn">Sign Out</button>
+            </header>
+
+            <!-- Add the WebR REPL here -->
+            <webr-repl></webr-repl>
+
+            <!-- File manager -->
+            <div id="file-manager" class="file-container">
+                <div class="file-upload">
+                    <h3>Upload Data</h3>
+                    <input type="file" id="file-input" accept=".csv">
+                    <button id="upload-btn" class="btn">Upload</button>
+                </div>
+                <div class="file-list">
+                    <h3>Your Files</h3>
+                    <ul id="file-list"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="src/main.js"></script>
+</body>
+</html>
