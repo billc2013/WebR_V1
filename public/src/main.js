@@ -115,8 +115,8 @@ async function handleFileUpload() {
       // Upload the file to Supabase Storage
       await uploadCSV(user.id, file, file.name);
   
-      // Insert a record into the file_uploads table
-      const { data, error } = await supabase.from('file_uploads').insert([
+      // Insert a record into the files_uploads table
+      const { data, error } = await supabase.from('files_uploads').insert([
         {
           user_id: user.id,
           file_name: file.name,
@@ -126,7 +126,7 @@ async function handleFileUpload() {
       ]);
   
       if (error) {
-        console.error('Error inserting into file_uploads:', error);
+        console.error('Error inserting into files_uploads:', error);
         throw error;
       }
   
@@ -147,7 +147,7 @@ async function handleFileUpload() {
 async function loadUserFiles(userId) {
     try {
         const { data: files, error } = await supabase
-            .from('file_uploads')
+            .from('files_uploads')
             .select('*')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
