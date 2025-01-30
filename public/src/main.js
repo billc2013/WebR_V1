@@ -101,11 +101,13 @@ async function handleSignOut() {
 async function handleFileUpload() {
     const file = fileInput.files[0];
     if (!file) return;
+    console.log("file selected...")
 
     const user = await getUser();
     if (!user) return;
 
     try {
+        console.log("upload process beginngin...")
         uploadBtn.disabled = true;
         uploadBtn.textContent = 'Uploading...';
 
