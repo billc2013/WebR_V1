@@ -48,7 +48,8 @@ export class WebRRepl extends HTMLElement {
                 // Option 1: Load just the most recent state
                 const state = await loadReplState(user.id);
                 if (state) {
-                    this.commandHistory = JSON.parse(state.command_history || '[]');
+                    // Parse command_history after loading
+                    this.commandHistory = JSON.parse(state.command_history || ''); 
                     if (state.last_output) {
                         this.appendOutput(state.last_output);
                     }
@@ -109,7 +110,7 @@ export class WebRRepl extends HTMLElement {
             if (user) {
                 try {
                     await saveReplState(user.id, {
-                        commandHistory: this.commandHistory,
+                        commandHistory: JSON.stringify(this.commandHistory),
                         lastOutput: this.outputElement.textContent
                     });
                 } catch (error) {
