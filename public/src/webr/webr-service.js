@@ -76,31 +76,40 @@ class WebRService {
     }
 
     formatROutput(obj) {
-        if (!obj || !obj.type) return '';
-
+        if (!obj ||!obj.type) return '';
+    
         switch (obj.type) {
             case 'double':
             case 'integer':
             case 'logical':
             case 'character':
-                return `[1] ${obj.values.join(' ')}`;
+                return ` ${obj.values.join(' ')}`;
             
-            case 'list':
-                return `List:\n${obj.values.map((val, i) => 
-                    `[[${i + 1}]]\n${this.formatROutput(val)}`
-                ).join('\n')}`;
+            case 'list':  // This handles all lists
+                if (obj.names && obj.names.length > 0) { 
+                    // This is the specific case for named lists
+                    let output = `${obj.class? obj.class + ':\n': 'List:\n'}`;
+                    for (let key of obj.names) {
+                        output += `${key}:\n${this.formatROutput(obj.values[obj.names.indexOf(key)])}\n`;
+                    }
+                    return output;
+                } else {
+                    // This is for regular lists without names
+                    return `List:\n${obj.values.map((val, i) => 
+                        `[[${i + 1}]]\n${this.formatROutput(val)}`
+                    ).join('\n')}`;
+                }
             
             case 'data.frame':
-                const colNames = obj.names || [];
+                const colNames = obj.names ||;
                 const rows = obj.values;
                 return colNames.join('\t') + '\n' + 
                        rows.map(row => row.values.join('\t')).join('\n');
-            
             default:
                 return `Unsupported type: ${obj.type}`;
         }
     }
-
+    
     async cleanup() {
         if (this.webR) {
             // Add any necessary cleanup here
