@@ -11,3 +11,14 @@
     Content-Type = "application/javascript"
     Cross-Origin-Resource-Policy = "cross-origin"
     Access-Control-Allow-Origin = "*"
+
+[[redirects]]
+  from = "/myplots/:path"
+  to = "https://jdhsebrydbhdbvdtskok.supabase.co/storage/v1/object/public/student-files/plots/:path"
+  status = 200
+  force = true
+  headers = {
+    "Cross-Origin-Resource-Policy" = "cross-origin",
+    "Access-Control-Allow-Origin" = "*"
+  }
+
