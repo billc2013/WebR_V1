@@ -99,9 +99,9 @@ class WebRService {
                         `[[${i + 1}]]\n${this.formatROutput(val)}`
                     ).join('\n')}`;
                 }
-            
+
             case 'data.frame':
-                const colNames = obj.names ||;
+                const colNames = obj.names || [];
                 const rows = obj.values;
                 // Create the formatted output string first
                 const formattedRows = rows.map(row => row.values.join('\t')).join('\n'); 
