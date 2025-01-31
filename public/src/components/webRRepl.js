@@ -45,18 +45,26 @@ export class WebRRepl extends HTMLElement {
         const user = await getUser();
         if (user) {
             try {
+                // Option 1: Load just the most recent state
                 const state = await loadReplState(user.id);
-                if (state && state.command_history) {
-                    this.commandHistory = state.command_history;
+                if (state) {
+                    this.commandHistory = JSON.parse(state.command_history || '[]');
                     if (state.last_output) {
                         this.appendOutput(state.last_output);
                     }
                 }
+    
+                // Option 2: Load full command history
+                // const fullHistory = await getFullCommandHistory(user.id);
+                // this.commandHistory = fullHistory;
+                
             } catch (error) {
                 console.error('Error loading REPL state:', error);
+                // Don't throw - just log the error and continue with empty history
             }
         }
     }
+    
 
     async loadLocalFile(fileBlob, fileName) {
         const arrayBuffer = await fileBlob.arrayBuffer();
