@@ -103,8 +103,10 @@ class WebRService {
             case 'data.frame':
                 const colNames = obj.names ||;
                 const rows = obj.values;
-                return colNames.join('\t') + '\n' + 
-                       rows.map(row => row.values.join('\t')).join('\n');
+                // Create the formatted output string first
+                const formattedRows = rows.map(row => row.values.join('\t')).join('\n'); 
+                return colNames.join('\t') + '\n' + formattedRows; // Then return it
+                
             default:
                 return `Unsupported type: ${obj.type}`;
         }
