@@ -3,6 +3,7 @@ import { supabase } from '/src/supabase/supabaseClient.js'
 import { signIn, signUp, signOut, getUser } from './supabase/auth.js';
 import { uploadCSV, downloadFile } from './supabase/storageService.js';
 import './components/webRRepl.js';  // Import the WebR REPL component
+import { webrService } from './webr/webr-service.js';
 
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
@@ -12,6 +13,7 @@ const signoutBtn = document.getElementById('signout-btn');
 const fileInput = document.getElementById('file-input');
 const uploadBtn = document.getElementById('upload-btn');
 const fileList = document.getElementById('file-list');
+const statusIndicator = document.getElementById('status-indicator');
 
 // Initialize the application
 async function initApp() {
@@ -61,6 +63,7 @@ async function handleSignIn() {
     const password = document.getElementById('password').value;
 
     try {
+        statusIndicator.textContent = 'Signing in...';
         const { user } = await signIn(email, password);
         if (user) {
             showApp();
@@ -68,6 +71,8 @@ async function handleSignIn() {
         }
     } catch (error) {
         alert('Sign in failed: ' + error.message);
+    } finally {
+        updateWebRStatus();
     }
 }
 
@@ -77,6 +82,7 @@ async function handleSignUp() {
     const password = document.getElementById('password').value;
 
     try {
+        statusIndicator.textContent = 'Creating account...';
         const { user } = await signUp(email, password);
         if (user) {
             showApp();
@@ -84,6 +90,8 @@ async function handleSignUp() {
         }
     } catch (error) {
         alert('Sign up failed: ' + error.message);
+    } finally {
+        updateWebRStatus();
     }
 }
 
@@ -91,57 +99,74 @@ async function handleSignUp() {
 async function handleSignOut() {
     try {
         await signOut();
+        // Clean up WebR
+        await webrService.cleanup();
         showAuth();
     } catch (error) {
         alert('Sign out failed: ' + error.message);
     }
 }
 
-// Handle file upload
+// Update WebR status indicator
+function updateWebRStatus() {
+    if (webrService.isInitialized) {
+        statusIndicator.textContent = 'WebR: Ready';
+        statusIndicator.classList.add('status-ready');
+    } else {
+        statusIndicator.textContent = 'WebR: Not Ready';
+        statusIndicator.classList.remove('status-ready');
+    }
+}
+
 // Handle file upload
 async function handleFileUpload() {
     const file = fileInput.files[0];
     if (!file) return;
-    console.log("file selected...");
-  
+
     const user = await getUser();
     if (!user) return;
-  
+
     try {
-      console.log("upload process beginning...");
-      uploadBtn.disabled = true;
-      uploadBtn.textContent = 'Uploading...';
-  
-      // Upload the file to Supabase Storage
-      await uploadCSV(user.id, file, file.name);
-  
-      // Insert a record into the files_uploads table
-      const { data, error } = await supabase.from('files_uploads').insert([
-        {
-          user_id: user.id,
-          file_name: file.name,
-          file_path: `csv/${user.id}/${file.name}`,
-          file_type: `csv/${user.id}/${file.file_type}`
-        },
-      ]);
-  
-      if (error) {
-        console.error('Error inserting into files_uploads:', error);
-        throw error;
-      }
-  
-      await loadUserFiles(user.id);
-  
-      fileInput.value = '';  // Clear the input
-      alert('File uploaded successfully!');
+        uploadBtn.disabled = true;
+        uploadBtn.textContent = 'Uploading...';
+        statusIndicator.textContent = 'Uploading file...';
+
+        // Upload the file to Supabase Storage
+        await uploadCSV(user.id, file, file.name);
+
+        // Insert a record into the files_uploads table
+        const { data, error } = await supabase.from('files_uploads').insert([
+            {
+                user_id: user.id,
+                file_name: file.name,
+                file_path: `csv/${user.id}/${file.name}`,
+                file_type: file.type
+            },
+        ]);
+
+        if (error) throw error;
+
+        // Reload the file list
+        await loadUserFiles(user.id);
+
+        // Get the WebR REPL component and load the file
+        const repl = document.querySelector('webr-repl');
+        if (repl) {
+            const fileBlob = await downloadFile(`csv/${user.id}/${file.name}`);
+            await repl.loadLocalFile(fileBlob, file.name);
+        }
+
+        fileInput.value = '';  // Clear the input
+        alert('File uploaded successfully!');
     } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Upload failed: ' + error.message);
+        console.error('Upload failed:', error);
+        alert('Upload failed: ' + error.message);
     } finally {
-      uploadBtn.disabled = false;
-      uploadBtn.textContent = 'Upload';
+        uploadBtn.disabled = false;
+        uploadBtn.textContent = 'Upload';
+        updateWebRStatus();
     }
-  }
+}
 
 // Load user's files
 async function loadUserFiles(userId) {
@@ -160,7 +185,7 @@ async function loadUserFiles(userId) {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span>${file.file_name}</span>
-                <button class="btn small" onclick="loadFileInR('${file.file_path}')">Load in R</button>
+                <button class="btn small" onclick="window.loadFileInR('${file.file_path}')">Load in R</button>
             `;
             fileList.appendChild(li);
         });
@@ -172,14 +197,16 @@ async function loadUserFiles(userId) {
 // Load a file into R workspace
 window.loadFileInR = async function(filePath) {
     try {
-      const fileBlob = await downloadFile(filePath);
-      const repl = document.querySelector('webr-repl');
-      if (repl) {
-        await repl.loadLocalFile(fileBlob, 'mydata.csv'); 
-        await repl.executeCode(`df <- read.csv("mydata.csv")`);
-      }
+        statusIndicator.textContent = 'Loading file...';
+        const fileBlob = await downloadFile(filePath);
+        const repl = document.querySelector('webr-repl');
+        if (repl) {
+            await repl.loadLocalFile(fileBlob, filePath.split('/').pop());
+        }
     } catch (error) {
         alert('Error loading file into R: ' + error.message);
+    } finally {
+        updateWebRStatus();
     }
 };
 
@@ -199,3 +226,6 @@ supabase.auth.onAuthStateChange((event, session) => {
         showAuth();
     }
 });
+
+// Update WebR status periodically
+setInterval(updateWebRStatus, 5000);

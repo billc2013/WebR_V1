@@ -7,19 +7,28 @@ class WebRService {
         this.isInitialized = false;
         this.requiredPackages = ['ggplot2'];
         this.packagesLoaded = false;
+        this.shelter = null;
     }
 
     async initialize() {
         if (this.isInitialized) return;
 
         try {
+            // Initialize WebR with PostMessage channel for better compatibility
             this.webR = new WebR({
                 baseURL: 'https://webr.r-wasm.org/latest/',
                 serviceWorkerUrl: undefined,
-                debug: false
+                channelType: "post-message"
             });
             
             await this.webR.init();
+            
+            // Create a shelter for memory management
+            this.shelter = await new this.webR.Shelter();
+            
+            // Set up canvas as default graphics device
+            await this.webR.evalRVoid('options(device=webr::canvas)');
+            
             await this.loadRequiredPackages();
             this.isInitialized = true;
             return true;
@@ -33,11 +42,9 @@ class WebRService {
         if (this.packagesLoaded) return;
 
         try {
-            console.log('Loading required R packages...');
-            await this.webR.installPackages(this.requiredPackages);
-            
             for (const pkg of this.requiredPackages) {
-                await this.webR.evalR(`library(${pkg})`);
+                await this.webR.installPackages([pkg]);
+                await this.webR.evalRVoid(`library(${pkg})`);
             }
             
             this.packagesLoaded = true;
@@ -48,198 +55,63 @@ class WebRService {
         }
     }
 
-    async createPlot(plotCode) {
-        if (!this.isInitialized) {
-            throw new Error('WebR not initialized');
-        }
-
-        try {
-            console.log('Creating plot with code:', plotCode);
-
-            // Set up PNG device directly
-            await this.webR.evalR('png(filename = "plot.png", width = 800, height = 600)');
-            
-            // Execute the plot code
-            await this.webR.evalR(`print(${plotCode})`);
-            
-            // Close the device
-            await this.webR.evalR('dev.off()');
-
-            // Read the file directly
-            const plotData = await this.webR.FS.readFile('plot.png');
-            
-            // Clean up
-            await this.webR.FS.unlink('plot.png');
-
-            // Return the blob
-            return new Blob([plotData], { type: 'image/png' });
-        } catch (error) {
-            console.error('Plot creation error:', error);
-            throw new Error(`Plot creation error: ${error.message}`);
-        }
-    }
-
     async executeCode(code) {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
         }
-    
+
         try {
-            // Execute the code
-            const result = await this.webR.evalR(code);
-            console.log("Raw R result:", result);
+            // Use captureR to get all output including plots
+            const capture = await this.shelter.captureR(code, {
+                withAutoprint: true,
+                captureConditions: true,
+                captureStreams: true,
+                captureGraphics: {
+                    width: 504,
+                    height: 504,
+                    pointsize: 12,
+                    bg: "white"
+                }
+            });
+
+            // Process the captured output
+            let outputText = '';
             
-            // Get object name (for both assignments and direct expressions)
-            const objectName = code.includes('<-') 
-                ? code.split('<-')[0].trim() 
-                : code.trim();
-    
-            // First check for ggplot commands
-            if (code.includes('ggplot(')) {
-                console.log('ggplot detected, creating plot...');
-                return await this.createPlot(code);
-            }
-    
-            try {
-                // Get the class of the object
-                const classResult = await this.webR.evalR(`class(${objectName})`);
-                const classJS = await classResult.toJs();
-                console.log("Object class:", classJS);
-    
-                if (!classJS.values) {
-                    // If no class values, treat as regular output
-                    const jsResult = await result.toJs();
-                    return this.formatROutput(jsResult);
-                }
-    
-                // Handle different object types based on class
-                if (classJS.values.includes('lm')) {
-                    // Handle linear models
-                    const [printOutput, summaryOutput] = await Promise.all([
-                        this.webR.evalR(`capture.output(print(${objectName}))`),
-                        this.webR.evalR(`capture.output(summary(${objectName}))`)
-                    ]);
-                    
-                    const [printJS, summaryJS] = await Promise.all([
-                        printOutput.toJs(),
-                        summaryOutput.toJs()
-                    ]);
-    
-                    return [
-                        "Call:",
-                        ...printJS.values,
-                        "",
-                        "Coefficients:",
-                        ...summaryJS.values.filter(line => 
-                            !line.includes("Call:") && 
-                            !line.trim().startsWith("---")
-                        )
-                    ].join('\n');
-                } 
-                
-                // Handle regular output
-                const jsResult = await result.toJs();
-                return this.formatROutput(jsResult);
-    
-            } catch (conversionError) {
-                console.error("Conversion error:", conversionError);
-                
-                // Fallback: try to get string representation
-                try {
-                    const stringOutput = await this.webR.evalR(`capture.output(print(${objectName}))`);
-                    const stringJS = await stringOutput.toJs();
-                    return stringJS.values.join('\n');
-                } catch (stringError) {
-                    return await result.toString();
+            // Handle standard output and errors
+            if (capture.output) {
+                for (const out of capture.output) {
+                    switch (out.type) {
+                        case 'stdout':
+                        case 'stderr':
+                            outputText += out.data + '\n';
+                            break;
+                        case 'message':
+                        case 'warning':
+                        case 'error':
+                            const condition = await out.data.toJs();
+                            outputText += `${out.type}: ${condition.message}\n`;
+                            break;
+                    }
                 }
             }
+
+            // Return the results and any captured plots
+            return {
+                output: outputText.trim(),
+                images: capture.images,
+                result: capture.result ? await capture.result.toJs() : null
+            };
         } catch (error) {
             throw new Error(`R execution error: ${error.message}`);
         }
     }
 
-    formatROutput(obj) {
-        console.log("Formatting object:", obj);
-        if (!obj || !obj.type) return '';
-    
-        switch (obj.type) {
-            case 'double':
-            case 'integer':
-            case 'logical':
-            case 'character':
-                if (obj.names) {
-                    // Handle named vectors
-                    return obj.names.map((name, i) => 
-                        `${name}: ${obj.values[i]}`
-                    ).join('\n');
-                }
-                return ` ${obj.values.join(' ')}`;
-            
-            case 'list':
-                if (obj.names && obj.names.length > 0) {
-                    let output = `${obj.class ? obj.class.join(' ') + ':\n' : 'List:\n'}`;
-                    for (let i = 0; i < obj.names.length; i++) {
-                        const key = obj.names[i];
-                        const value = obj.values[i];
-                        if (value !== undefined) {
-                            output += `$${key}\n${this.formatROutput(value)}\n`;
-                        }
-                    }
-                    return output;
-                }
-                return `List:\n${obj.values.map((val, i) => 
-                    `[[${i + 1}]]\n${this.formatROutput(val)}`
-                ).join('\n')}`;
-
-            case 'data.frame':
-                const colNames = obj.names || [];
-                const rows = obj.values;
-                return colNames.join('\t') + '\n' + 
-                       rows.map(row => row.values.join('\t')).join('\n');
-            
-            default:
-                return `Unsupported type: ${obj.type}`;
-        }
-    }
-
-    formatLinearModel(lmObj) {
-        let output = 'Call:\n';
-        
-        // Format the call (formula)
-        if (lmObj.values.find(v => v.names && v.names.includes('call'))) {
-            output += this.formatROutput(lmObj.values[lmObj.names.indexOf('call')]) + '\n\n';
-        }
-
-        // Format coefficients
-        const coefficients = lmObj.values.find(v => v.names && v.names.includes('coefficients'));
-        if (coefficients) {
-            output += 'Coefficients:\n';
-            const coefValues = coefficients.values;
-            const coefNames = coefficients.names || [];
-            coefValues.forEach((coef, i) => {
-                output += `${coefNames[i] || 'Unknown'}: ${coef}\n`;
-            });
-        }
-
-        // Format residuals summary if available
-        const residuals = lmObj.values.find(v => v.names && v.names.includes('residuals'));
-        if (residuals) {
-            output += '\nResidual summary:\n';
-            output += this.formatROutput(residuals) + '\n';
-        }
-
-        // Format R-squared if available
-        const rSquared = lmObj.values.find(v => v.names && v.names.includes('r.squared'));
-        if (rSquared) {
-            output += `\nR-squared: ${this.formatROutput(rSquared)}\n`;
-        }
-
-        return output;
-    }
-    
     async cleanup() {
+        if (this.shelter) {
+            await this.shelter.purge();
+        }
         if (this.webR) {
-            // Add any necessary cleanup here
+            await this.webR.close();
             this.isInitialized = false;
             this.webR = null;
         }

@@ -9,6 +9,7 @@ export class WebRRepl extends HTMLElement {
         super();
         this.commandHistory = [];
         this.currentHistoryIndex = -1;
+        this.plotCounter = 0;
     }
 
     async connectedCallback() {
@@ -45,74 +46,63 @@ export class WebRRepl extends HTMLElement {
         const user = await getUser();
         if (user) {
             try {
-                // Option 1: Load just the most recent state
                 const state = await loadReplState(user.id);
                 if (state) {
-                    // Parse command_history after loading
-                    this.commandHistory = JSON.parse(state.command_history || ''); 
+                    this.commandHistory = JSON.parse(state.command_history || '[]');
                     if (state.last_output) {
                         this.appendOutput(state.last_output);
                     }
                 }
-    
-                // Option 2: Load full command history
-                // const fullHistory = await getFullCommandHistory(user.id);
-                // this.commandHistory = fullHistory;
-                
             } catch (error) {
                 console.error('Error loading REPL state:', error);
-                // Don't throw - just log the error and continue with empty history
             }
         }
     }
-    
 
     async loadLocalFile(fileBlob, fileName) {
-        const arrayBuffer = await fileBlob.arrayBuffer();
-        await webrService.webR.FS.writeFile(fileName, new Uint8Array(arrayBuffer));
-      }
-      
+        try {
+            const arrayBuffer = await fileBlob.arrayBuffer();
+            await webrService.webR.FS.writeFile(fileName, new Uint8Array(arrayBuffer));
+            
+            // After writing the file, try to read it as a data frame
+            const result = await webrService.executeCode(`
+                df <- read.csv("${fileName}")
+                head(df)
+            `);
+            
+            this.appendOutput("File loaded successfully. Preview:\n");
+            this.appendOutput(result.output + "\n");
+        } catch (error) {
+            this.appendOutput(`Error loading file: ${error.message}\n`);
+        }
+    }
+
     async executeCode() {
         const code = this.inputElement.value.trim();
         if (!code) return;
-    
+
         // Add to history
         this.commandHistory.push(code);
         this.currentHistoryIndex = this.commandHistory.length;
-    
+
         // Show the command
         this.appendOutput(`> ${code}\n`);
-    
+
         try {
-            // Enhanced plot detection regex that includes ggplot2 commands
-            const hasPlot = /^(?:.*\b(?:plot|hist|boxplot|ggplot|geom_|barplot|pie|curve|contour|image|persp)\b.*|\s*par\b.*|.*\s*\+\s*(?:geom_|scale_|theme_|coord_|facet_).*)$/m.test(code);
-    
-            if (hasPlot) {
-                // For ggplot2, we need to handle the case where the plot is assigned to a variable
-                let plotCode = code;
-                if (code.includes('<-')) {
-                    // If this is an assignment, add a line to print the plot
-                    const varName = code.split('<-')[0].trim();
-                    plotCode = `${code}\nprint(${varName})`;
-                }
-    
-                // Handle plot creation
-                const plotBlob = await webrService.createPlot(plotCode);
-                const user = await getUser();
-                if (user) {
-                    try {
-                        const plotUrl = await uploadPlot(user.id, plotBlob);
-                        this.showPlot(plotUrl);
-                    } catch (error) {
-                        this.appendOutput('Error saving plot: ' + error.message + '\n');
-                    }
-                }
-            } else {
-                // Regular code execution
-                const result = await webrService.executeCode(code);
-                this.appendOutput(result + '\n');
+            const result = await webrService.executeCode(code);
+
+            // Handle output text
+            if (result.output) {
+                this.appendOutput(result.output + '\n');
             }
-    
+
+            // Handle captured plots
+            if (result.images && result.images.length > 0) {
+                for (const image of result.images) {
+                    await this.showPlot(image);
+                }
+            }
+
             // Save state
             const user = await getUser();
             if (user) {
@@ -128,9 +118,55 @@ export class WebRRepl extends HTMLElement {
         } catch (error) {
             this.appendOutput('Error: ' + error.message + '\n');
         }
-    
+
         // Clear input
         this.inputElement.value = '';
+    }
+
+    async showPlot(imageData) {
+        this.plotCounter++;
+        
+        // Create a container for this plot
+        const container = document.createElement('div');
+        container.className = 'plot-card';
+
+        // Create the canvas element
+        const canvas = document.createElement('canvas');
+        canvas.width = imageData.width;
+        canvas.height = imageData.height;
+        canvas.className = 'plot-image';
+        
+        // Draw the plot
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(imageData, 0, 0);
+        
+        // Create control buttons
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Close Plot';
+        closeBtn.onclick = () => container.remove();
+
+        const shareBtn = document.createElement('button');
+        shareBtn.textContent = 'Share Plot';
+        shareBtn.onclick = async () => {
+            try {
+                const user = await getUser();
+                if (user) {
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve));
+                    const url = await uploadPlot(user.id, blob);
+                    window.prompt('Share this URL:', url);
+                }
+            } catch (error) {
+                console.error('Error sharing plot:', error);
+            }
+        };
+
+        // Assemble the container
+        container.appendChild(canvas);
+        container.appendChild(closeBtn);
+        container.appendChild(shareBtn);
+
+        // Add to plot output area
+        this.plotOutput.appendChild(container);
     }
 
     handleKeyPress(event) {
@@ -162,45 +198,7 @@ export class WebRRepl extends HTMLElement {
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
     }
 
-    showPlot(url) {
-        // Create a container for this plot
-        const container = document.createElement('div');
-        container.className = 'plot-card';
-      
-        // Create the <img> element
-        const img = document.createElement('img');
-        img.src = url;
-        img.alt = 'R Plot';
-        img.className = 'plot-image';
-        
-        // Create a "Close Plot" button
-        const closeBtn = document.createElement('button');
-        closeBtn.textContent = 'Close Plot';
-        closeBtn.onclick = () => {
-          container.remove(); // remove this entire plot card
-        };
-      
-        // Create a "Share Plot" button
-        const shareBtn = document.createElement('button');
-        shareBtn.textContent = 'Share Plot';
-        shareBtn.onclick = () => {
-          // For an MVP, just prompt or copy the URL
-          window.prompt('Share this URL:', url);
-        };
-      
-        // Assemble the container
-        container.appendChild(img);
-        container.appendChild(closeBtn);
-        container.appendChild(shareBtn);
-      
-        // Append to the existing .plot-output
-        // (Don't overwrite existing content)
-        this.plotOutput.appendChild(container);
-      }
-      
-
     disconnectedCallback() {
-        // Cleanup
         webrService.cleanup();
     }
 }

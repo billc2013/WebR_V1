@@ -5,10 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebR Conservation Ecology</title>
     <link rel="stylesheet" href="styles.css">
-    <!-- Add this for WebR -->
+    <!-- Add WebR script with type module -->
     <script src="https://webr.r-wasm.org/latest/webr.mjs" type="module"></script>
     <!-- Add your webr styles -->
     <link rel="stylesheet" href="webr-repl.css">
+    <!-- Add CORS headers -->
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
 </head>
 <body>
     <div id="app">
@@ -21,7 +24,10 @@
         <div id="main-container" class="container hidden">
             <header>
                 <h1>Conservation Ecology R Lab</h1>
-                <button id="signout-btn" class="btn">Sign Out</button>
+                <div class="header-controls">
+                    <span id="status-indicator" class="status">WebR: Loading...</span>
+                    <button id="signout-btn" class="btn">Sign Out</button>
+                </div>
             </header>
 
             <!-- Add the WebR REPL here -->
