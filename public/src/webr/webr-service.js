@@ -56,57 +56,26 @@ class WebRService {
         try {
             console.log('Creating plot with code:', plotCode);
 
-            // Get temp directory path from R
-            const tempDir = await this.webR.evalR('tempdir()');
-            const tempDirPath = await tempDir.toString();
-            const filename = `plot_${Date.now()}.png`;
-            const filepath = `${tempDirPath}/${filename}`;
-
-            console.log('Using filepath:', filepath);
-
-            // Set up device and create plot in a single R execution
-            await this.webR.evalR(`
-                tryCatch({
-                    # Ensure temp directory exists
-                    dir.create(tempdir(), showWarnings = FALSE, recursive = TRUE)
-                    
-                    # Set up the PNG device
-                    png("${filepath}",
-                        width = 800,
-                        height = 600,
-                        res = 96,
-                        bg = "white")
-                    
-                    # Create the plot
-                    print(${plotCode})
-                    
-                    # Close the device
-                    dev.off()
-                }, error = function(e) {
-                    if (dev.cur() > 1) dev.off()
-                    stop(paste("Plot error:", e$message))
-                })
-            `);
-
-            // Verify the file exists
-            const fileCheck = await this.webR.evalR(`file.exists("${filepath}")`);
-            const exists = await fileCheck.toJs();
+            // Set up PNG device directly
+            await this.webR.evalR('png(filename = "plot.png", width = 800, height = 600)');
             
-            if (!exists) {
-                throw new Error('Plot file was not created');
-            }
+            // Execute the plot code
+            await this.webR.evalR(`print(${plotCode})`);
+            
+            // Close the device
+            await this.webR.evalR('dev.off()');
 
-            // Read the file
-            console.log('Reading plot file...');
-            const plotData = await this.webR.FS.readFile(filepath);
-
+            // Read the file directly
+            const plotData = await this.webR.FS.readFile('plot.png');
+            
             // Clean up
-            await this.webR.evalR(`unlink("${filepath}")`);
+            await this.webR.FS.unlink('plot.png');
 
+            // Return the blob
             return new Blob([plotData], { type: 'image/png' });
         } catch (error) {
             console.error('Plot creation error:', error);
-            throw error;
+            throw new Error(`Plot creation error: ${error.message}`);
         }
     }
 
