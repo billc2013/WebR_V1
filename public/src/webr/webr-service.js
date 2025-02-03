@@ -34,32 +34,55 @@ class WebRService {
         }
 
         try {
+            // Execute the code
             const result = await this.webR.evalR(code);
             console.log("Raw R result:", result);
             let output;
 
             try {
-                // First try to get the class of the object
-                const classResult = await this.webR.evalR(`class(${code.split('<-')[0].trim()})`);
+                // Check if this is an assignment operation
+                const isAssignment = code.includes('<-');
+                const objectName = isAssignment ? code.split('<-')[0].trim() : code.trim();
+
+                // Get the class of the object
+                const classResult = await this.webR.evalR(`class(${objectName})`);
                 const classJS = await classResult.toJs();
                 console.log("Object class:", classJS);
 
-                // Convert the result to JavaScript
-                const jsResult = await result.toJs();
-                console.log("Converted to JS:", jsResult);
-
                 // Special handling for linear models
                 if (classJS.values && classJS.values.includes('lm')) {
-                    // Get a formatted summary of the model
-                    const summary = await this.webR.evalR(`capture.output(summary(${code.split('<-')[0].trim()}))`);
-                    const summaryJS = await summary.toJs();
-                    output = summaryJS.values.join('\n');
+                    // Capture the print output of the model
+                    const printOutput = await this.webR.evalR(`capture.output(print(${objectName}))`);
+                    const summaryOutput = await this.webR.evalR(`capture.output(summary(${objectName}))`);
+                    
+                    const printJS = await printOutput.toJs();
+                    const summaryJS = await summaryOutput.toJs();
+
+                    output = [
+                        "Call:",
+                        ...printJS.values,
+                        "",
+                        "Coefficients:",
+                        ...summaryJS.values.filter(line => 
+                            !line.includes("Call:") && 
+                            !line.trim().startsWith("---")
+                        )
+                    ].join('\n');
                 } else {
+                    // Handle regular output
+                    const jsResult = await result.toJs();
                     output = this.formatROutput(jsResult);
                 }
             } catch (conversionError) {
                 console.error("Conversion error:", conversionError);
-                output = await result.toString();
+                // If conversion fails, try to get string representation
+                try {
+                    const stringOutput = await this.webR.evalR(`capture.output(print(${code.trim()}))`);
+                    const stringJS = await stringOutput.toJs();
+                    output = stringJS.values.join('\n');
+                } catch (stringError) {
+                    output = await result.toString();
+                }
             }
 
             return output;
@@ -67,7 +90,7 @@ class WebRService {
             throw new Error(`R execution error: ${error.message}`);
         }
     }
-
+    
     async createPlot(plotCode) {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
