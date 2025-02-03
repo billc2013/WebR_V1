@@ -76,6 +76,7 @@ class WebRService {
     }
 
     formatROutput(obj) {
+        console.log(obj);
         if (!obj ||!obj.type) return '';
     
         switch (obj.type) {
@@ -86,7 +87,6 @@ class WebRService {
                 return ` ${obj.values.join(' ')}`;
             
             case 'list':  // This handles all lists
-                console.log(obj);
                 if (obj.names && obj.names.length > 0) { 
                     // This is the specific case for named lists
                     let output = `${obj.class? obj.class + ':\n': 'List:\n'}`;
