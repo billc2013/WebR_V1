@@ -74,21 +74,8 @@ class WebRService {
             let execCode = code;
             
             if (isGgplot) {
-                console.log('ggplot detected, adding debugging...');
-                execCode = `
-                    tryCatch({
-                        plot_obj <- ${code}
-                        cat("=== Plot Object Class ===\\n")
-                        print(class(plot_obj))
-                        cat("=== Plot Object Structure ===\\n")
-                        str(plot_obj)
-                        cat("=== Attempting to render plot ===\\n")
-                        print(plot_obj)
-                    }, error = function(e) {
-                        cat("Error in ggplot execution:", conditionMessage(e), "\\n")
-                    })
-                `;
-                console.log('Executing ggplot code with debugging:', execCode);
+                // For ggplot, ensure we print the plot object
+                execCode = `print(${code})`;
             }
 
             console.log('Starting R code execution...');
@@ -104,13 +91,14 @@ class WebRService {
                 }
             });
 
-            console.log('Capture result:', {
-                hasOutput: !!capture.output,
-                outputLength: capture.output?.length,
-                hasImages: !!capture.images,
-                imageCount: capture.images?.length,
-                hasResult: !!capture.result
-            });
+            // For debugging if needed
+            // console.log('Capture result:', {
+            //     hasOutput: !!capture.output,
+            //     outputLength: capture.output?.length,
+            //     hasImages: !!capture.images,
+            //     imageCount: capture.images?.length,
+            //     hasResult: !!capture.result
+            // });
 
             let outputText = '';
             if (capture.output) {
@@ -137,12 +125,11 @@ class WebRService {
 
             // If we have a result, try to convert it
             let result = null;
-            if (capture.result) {
+            if (capture.result && !isGgplot) {  // Don't try to convert ggplot objects
                 try {
                     result = await capture.result.toJs();
-                    console.log('Successfully converted result:', result);
                 } catch (e) {
-                    console.log('Failed to convert result:', e);
+                    console.error('Failed to convert result:', e);
                     // Don't throw - we might still have useful output and images
                 }
             }
