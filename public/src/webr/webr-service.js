@@ -5,7 +5,7 @@ class WebRService {
     constructor() {
         this.webR = null;
         this.isInitialized = false;
-        this.requiredPackages = ['ggplot2'];
+        this.requiredPackages = ['ggplot2', 'ggpubr'];
         this.packagesLoaded = false;
         this.shelter = null;
     }
