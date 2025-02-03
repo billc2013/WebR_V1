@@ -75,21 +75,29 @@ export class WebRRepl extends HTMLElement {
     async executeCode() {
         const code = this.inputElement.value.trim();
         if (!code) return;
-
+    
         // Add to history
         this.commandHistory.push(code);
         this.currentHistoryIndex = this.commandHistory.length;
-
+    
         // Show the command
         this.appendOutput(`> ${code}\n`);
-
+    
         try {
-            // Check if code contains plotting commands
-            const hasPlot = /^(?:.*\b(?:plot|hist|boxplot|ggplot|geom_|barplot|pie|curve|contour|image|persp)\b.*|\s*par\b.*)$/m.test(code);
-
+            // Enhanced plot detection regex that includes ggplot2 commands
+            const hasPlot = /^(?:.*\b(?:plot|hist|boxplot|ggplot|geom_|barplot|pie|curve|contour|image|persp)\b.*|\s*par\b.*|.*\s*\+\s*(?:geom_|scale_|theme_|coord_|facet_).*)$/m.test(code);
+    
             if (hasPlot) {
+                // For ggplot2, we need to handle the case where the plot is assigned to a variable
+                let plotCode = code;
+                if (code.includes('<-')) {
+                    // If this is an assignment, add a line to print the plot
+                    const varName = code.split('<-')[0].trim();
+                    plotCode = `${code}\nprint(${varName})`;
+                }
+    
                 // Handle plot creation
-                const plotBlob = await webrService.createPlot(code);
+                const plotBlob = await webrService.createPlot(plotCode);
                 const user = await getUser();
                 if (user) {
                     try {
@@ -104,7 +112,7 @@ export class WebRRepl extends HTMLElement {
                 const result = await webrService.executeCode(code);
                 this.appendOutput(result + '\n');
             }
-
+    
             // Save state
             const user = await getUser();
             if (user) {
@@ -120,7 +128,7 @@ export class WebRRepl extends HTMLElement {
         } catch (error) {
             this.appendOutput('Error: ' + error.message + '\n');
         }
-
+    
         // Clear input
         this.inputElement.value = '';
     }

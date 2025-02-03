@@ -1,10 +1,12 @@
 // webr-service.js
-import { WebR } from 'https://webr.r-wasm.org/v0.2.1/webr.mjs';
+import { WebR } from 'https://webr.r-wasm.org/latest/webr.mjs';
 
 class WebRService {
     constructor() {
         this.webR = null;
         this.isInitialized = false;
+        this.requiredPackages = ['ggplot2'];
+        this.packagesLoaded = false;
     }
 
     async initialize() {
@@ -12,15 +14,17 @@ class WebRService {
 
         try {
             this.webR = new WebR({
-                baseURL: 'https://webr.r-wasm.org/v0.2.1/',
-                // serviceWorkerUrl: 'https://webr.r-wasm.org/v0.2.1/webr-serviceworker.js',
+                baseURL: 'https://webr.r-wasm.org/latest',
                 serviceWorkerUrl: undefined,
                 debug: false
             });
             
             await this.webR.init();
-            this.isInitialized = true;
             
+            // Load required packages
+            await this.loadRequiredPackages();
+            
+            this.isInitialized = true;
             return true;
         } catch (error) {
             console.error('WebR initialization failed:', error);
@@ -28,6 +32,25 @@ class WebRService {
         }
     }
 
+    async loadRequiredPackages() {
+        if (this.packagesLoaded) return;
+
+        try {
+            // Show loading message
+            console.log('Loading required R packages...');
+            
+            // Install and load ggplot2
+            await this.webR.evalR('install.packages("ggplot2")');
+            await this.webR.evalR('library(ggplot2)');
+            
+            this.packagesLoaded = true;
+            console.log('R packages loaded successfully');
+        } catch (error) {
+            console.error('Failed to load R packages:', error);
+            throw error;
+        }
+    }
+    
     async executeCode(code) {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
@@ -90,15 +113,21 @@ class WebRService {
             throw new Error(`R execution error: ${error.message}`);
         }
     }
-    
+
     async createPlot(plotCode) {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
         }
 
         try {
-            // Set up PNG device
-            await this.webR.evalR('png(filename = "plot.png", width = 800, height = 600)');
+            // Set up PNG device with better resolution for ggplot
+            await this.webR.evalR(`
+                png(filename = "plot.png",
+                    width = 800,
+                    height = 600,
+                    res = 96,
+                    bg = "white")
+            `);
             
             // Execute plotting code
             await this.webR.evalR(plotCode);
