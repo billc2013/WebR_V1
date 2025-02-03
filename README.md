@@ -68,24 +68,49 @@ The primary goal is to create an accessible platform for biology students to lea
 - File storage and retrieval
 - User preferences storage
 
-## Current Status and Known Issues
+## Current Status
 
-### Working Features
-- User authentication
-- Basic R code execution
+### Core Features
+- User authentication and session management
+- Full R code execution environment
 - File upload and management
-- Command history
+- Command history with navigation
 - Session state persistence
+- Advanced plotting capabilities
+- Statistical analysis tools
+- Plot sharing functionality
 
-### Under Development
-- ggplot2 integration and plot generation
+### Verified Workflows
+1. Data Import and Analysis
+   - CSV file upload
+   - Automatic data frame creation
+   - Basic statistical analysis
+   - Data visualization
+
+2. Visualization
+   - Base R plotting
+   - ggplot2 graphics
+   - Statistical annotations with ggpubr
+   - Plot sharing and export
+
+3. Session Management
+   - Command history
+   - Environment persistence
+   - File management
+   - User authentication
+
+### Functional Features
+- Full ggplot2 integration with plot generation
+- Statistical analysis support through ggpubr
+- CSV file upload and automatic loading into R environment
+- Plot sharing capabilities
 - Enhanced error handling
-- Additional R package support
-- Improved data visualization capabilities
+- Data visualization with both base R and ggplot2
 
-### Known Issues
-- ggplot2 plot generation is not currently functional
-- Limited package availability through WebR
+### Verified Working Packages
+- ggplot2: Full support for complex visualizations
+- ggpubr: Statistical annotations and publication-ready plots
+- Base R graphics: All standard plotting functions
 - Some R functions may not work as expected in the WebR environment
 
 ## Development Setup
@@ -113,6 +138,48 @@ The primary goal is to create an accessible platform for biology students to lea
 - File access is restricted to authenticated users
 - Cross-Origin policies are enforced
 - Data is stored securely in Supabase
+
+## Example Usage
+
+### Data Visualization
+The platform supports both base R plotting and advanced ggplot2 visualizations:
+
+```R
+# Base R plotting
+plot(cars)
+
+# Simple ggplot2 visualization
+library(ggplot2)
+ggplot(cars, aes(x=speed, y=dist)) + 
+    geom_point() +
+    theme_minimal()
+
+# Advanced statistical visualization with ggpubr
+library(ggplot2)
+library(ggpubr)
+
+ggplot(cars, aes(x=speed, y=dist)) + 
+    geom_point() +
+    geom_smooth(method='lm', formula = y ~ x) +
+    theme_minimal() +
+    labs(title='Speed vs. Distance',
+         x='Speed (mph)',
+         y='Stopping Distance (ft)') +
+    stat_regline_equation(label.y = 100)
+```
+
+### Data Import
+CSV files can be uploaded through the UI and automatically loaded into R:
+1. Use the file upload button to select a CSV file
+2. The file will be automatically uploaded and stored
+3. Click "Load in R" to create a data frame named after your file
+4. Access your data using standard R commands
+
+### Plot Sharing
+All generated plots can be:
+1. Displayed directly in the web interface
+2. Shared via unique URLs
+3. Downloaded for use in other contexts
 
 ## Contributing
 This project is currently in MVP phase for testing with college biology students. Feedback and contributions will be incorporated based on testing results.
