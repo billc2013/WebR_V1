@@ -67,6 +67,12 @@ export class WebRRepl extends HTMLElement {
             // After writing the file, try to read it as a data frame
             const result = await webrService.executeCode(`
                 df <- read.csv("${fileName}")
+                cat("\\nFile loaded successfully as 'df'\\n")
+                cat("\\nTo view your data:\\n")
+                cat("  • Type head(df) to see the first few rows\\n")
+                cat("  • Type str(df) to see the structure\\n")
+                cat("  • Type summary(df) for basic statistics\\n")
+                cat("\\nPreview of data:\\n")
                 head(df)
             `);
             
