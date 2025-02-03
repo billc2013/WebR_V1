@@ -61,27 +61,66 @@ class WebRService {
         }
 
         try {
-            // Set up PNG device with better resolution for ggplot
+            console.log('Creating plot with code:', plotCode);
+
+            // Ensure we have a writable directory
             await this.webR.evalR(`
-                png(filename = "plot.png",
-                    width = 800,
-                    height = 600,
-                    res = 96,
-                    bg = "white")
+                if (!dir.exists(tempdir())) {
+                    dir.create(tempdir(), recursive = TRUE)
+                }
+            `);
+
+            // Create a unique filename for this plot
+            const filename = `plot_${Date.now()}.png`;
+            const filepath = `${filename}`;
+
+            // Set up PNG device with more detailed error handling
+            console.log('Setting up PNG device...');
+            await this.webR.evalR(`
+                tryCatch({
+                    png(filename = "${filepath}",
+                        width = 800,
+                        height = 600,
+                        res = 96,
+                        bg = "white")
+                }, error = function(e) {
+                    print(paste("Error setting up PNG device:", e$message))
+                })
             `);
             
-            // Execute plotting code
-            await this.webR.evalR(plotCode);
+            // Execute plotting code with error handling
+            console.log('Executing plot code...');
+            await this.webR.evalR(`
+                tryCatch({
+                    ${plotCode}
+                    dev.off()
+                }, error = function(e) {
+                    if (dev.cur() > 1) dev.off()
+                    print(paste("Error during plotting:", e$message))
+                    stop(e$message)
+                })
+            `);
+
+            // Check if file exists
+            console.log('Checking for plot file...');
+            const fileExists = await this.webR.evalR(`file.exists("${filepath}")`);
+            const fileExistsJS = await fileExists.toJs();
             
-            // Close device
-            await this.webR.evalR('dev.off()');
+            if (!fileExistsJS) {
+                throw new Error('Plot file was not created');
+            }
 
             // Get the plot binary data
-            const plotData = await this.webR.FS.readFile("plot.png");
+            console.log('Reading plot file...');
+            const plotData = await this.webR.FS.readFile(filepath);
+            
+            // Clean up the file
+            await this.webR.FS.unlink(filepath);
             
             // Convert to blob
             return new Blob([plotData], { type: 'image/png' });
         } catch (error) {
+            console.error('Detailed plot error:', error);
             throw new Error(`Plot creation error: ${error.message}`);
         }
     }
@@ -98,6 +137,18 @@ class WebRService {
             let output;
 
             try {
+                // Enhanced ggplot detection
+                if (code.includes('ggplot(')) {
+                    console.log('ggplot detected, creating plot...');
+                    return await this.createPlot(`
+                        tryCatch({
+                            print(${code})
+                        }, error = function(e) {
+                            print(paste("Error in ggplot:", e$message))
+                            stop(e$message)
+                        })
+                    `);
+                }
                 // Check if this is an assignment operation
                 const isAssignment = code.includes('<-');
                 const objectName = isAssignment ? code.split('<-')[0].trim() : code.trim();
@@ -151,7 +202,7 @@ class WebRService {
             throw new Error(`R execution error: ${error.message}`);
         }
     }
-    
+
     formatROutput(obj) {
         console.log("Formatting object:", obj);
         if (!obj || !obj.type) return '';
