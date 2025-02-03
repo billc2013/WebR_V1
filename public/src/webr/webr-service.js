@@ -20,10 +20,7 @@ class WebRService {
             });
             
             await this.webR.init();
-            
-            // Load required packages
             await this.loadRequiredPackages();
-            
             this.isInitialized = true;
             return true;
         } catch (error) {
@@ -36,13 +33,9 @@ class WebRService {
         if (this.packagesLoaded) return;
 
         try {
-            // Show loading message
             console.log('Loading required R packages...');
-            
-            // Install packages using WebR's installPackages method
             await this.webR.installPackages(this.requiredPackages);
             
-            // Load the packages using library()
             for (const pkg of this.requiredPackages) {
                 await this.webR.evalR(`library(${pkg})`);
             }
@@ -63,65 +56,57 @@ class WebRService {
         try {
             console.log('Creating plot with code:', plotCode);
 
-            // Ensure we have a writable directory
-            await this.webR.evalR(`
-                if (!dir.exists(tempdir())) {
-                    dir.create(tempdir(), recursive = TRUE)
-                }
-            `);
-
-            // Create a unique filename for this plot
+            // Get temp directory path from R
+            const tempDir = await this.webR.evalR('tempdir()');
+            const tempDirPath = await tempDir.toString();
             const filename = `plot_${Date.now()}.png`;
-            const filepath = `${filename}`;
+            const filepath = `${tempDirPath}/${filename}`;
 
-            // Set up PNG device with more detailed error handling
-            console.log('Setting up PNG device...');
+            console.log('Using filepath:', filepath);
+
+            // Set up device and create plot in a single R execution
             await this.webR.evalR(`
                 tryCatch({
-                    png(filename = "${filepath}",
+                    # Ensure temp directory exists
+                    dir.create(tempdir(), showWarnings = FALSE, recursive = TRUE)
+                    
+                    # Set up the PNG device
+                    png("${filepath}",
                         width = 800,
                         height = 600,
                         res = 96,
                         bg = "white")
-                }, error = function(e) {
-                    print(paste("Error setting up PNG device:", e$message))
-                })
-            `);
-            
-            // Execute plotting code with error handling
-            console.log('Executing plot code...');
-            await this.webR.evalR(`
-                tryCatch({
-                    ${plotCode}
+                    
+                    # Create the plot
+                    print(${plotCode})
+                    
+                    # Close the device
                     dev.off()
                 }, error = function(e) {
                     if (dev.cur() > 1) dev.off()
-                    print(paste("Error during plotting:", e$message))
-                    stop(e$message)
+                    stop(paste("Plot error:", e$message))
                 })
             `);
 
-            // Check if file exists
-            console.log('Checking for plot file...');
-            const fileExists = await this.webR.evalR(`file.exists("${filepath}")`);
-            const fileExistsJS = await fileExists.toJs();
+            // Verify the file exists
+            const fileCheck = await this.webR.evalR(`file.exists("${filepath}")`);
+            const exists = await fileCheck.toJs();
             
-            if (!fileExistsJS) {
+            if (!exists) {
                 throw new Error('Plot file was not created');
             }
 
-            // Get the plot binary data
+            // Read the file
             console.log('Reading plot file...');
             const plotData = await this.webR.FS.readFile(filepath);
-            
-            // Clean up the file
-            await this.webR.FS.unlink(filepath);
-            
-            // Convert to blob
+
+            // Clean up
+            await this.webR.evalR(`unlink("${filepath}")`);
+
             return new Blob([plotData], { type: 'image/png' });
         } catch (error) {
-            console.error('Detailed plot error:', error);
-            throw new Error(`Plot creation error: ${error.message}`);
+            console.error('Plot creation error:', error);
+            throw error;
         }
     }
 
@@ -129,48 +114,49 @@ class WebRService {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
         }
-
+    
         try {
             // Execute the code
             const result = await this.webR.evalR(code);
             console.log("Raw R result:", result);
-            let output;
-
+            
+            // Get object name (for both assignments and direct expressions)
+            const objectName = code.includes('<-') 
+                ? code.split('<-')[0].trim() 
+                : code.trim();
+    
+            // First check for ggplot commands
+            if (code.includes('ggplot(')) {
+                console.log('ggplot detected, creating plot...');
+                return await this.createPlot(code);
+            }
+    
             try {
-                // Enhanced ggplot detection
-                if (code.includes('ggplot(')) {
-                    console.log('ggplot detected, creating plot...');
-                    return await this.createPlot(`
-                        tryCatch({
-                            print(${code})
-                        }, error = function(e) {
-                            print(paste("Error in ggplot:", e$message))
-                            stop(e$message)
-                        })
-                    `);
-                }
-                // Check if this is an assignment operation
-                const isAssignment = code.includes('<-');
-                const objectName = isAssignment ? code.split('<-')[0].trim() : code.trim();
-
                 // Get the class of the object
                 const classResult = await this.webR.evalR(`class(${objectName})`);
                 const classJS = await classResult.toJs();
                 console.log("Object class:", classJS);
-
-                // Special handling for different types of objects
-                if (classJS.values && classJS.values.includes('gg')) {
-                    // Handle ggplot objects
-                    return await this.createPlot(code);
-                } else if (classJS.values && classJS.values.includes('lm')) {
+    
+                if (!classJS.values) {
+                    // If no class values, treat as regular output
+                    const jsResult = await result.toJs();
+                    return this.formatROutput(jsResult);
+                }
+    
+                // Handle different object types based on class
+                if (classJS.values.includes('lm')) {
                     // Handle linear models
-                    const printOutput = await this.webR.evalR(`capture.output(print(${objectName}))`);
-                    const summaryOutput = await this.webR.evalR(`capture.output(summary(${objectName}))`);
+                    const [printOutput, summaryOutput] = await Promise.all([
+                        this.webR.evalR(`capture.output(print(${objectName}))`),
+                        this.webR.evalR(`capture.output(summary(${objectName}))`)
+                    ]);
                     
-                    const printJS = await printOutput.toJs();
-                    const summaryJS = await summaryOutput.toJs();
-
-                    output = [
+                    const [printJS, summaryJS] = await Promise.all([
+                        printOutput.toJs(),
+                        summaryOutput.toJs()
+                    ]);
+    
+                    return [
                         "Call:",
                         ...printJS.values,
                         "",
@@ -180,24 +166,24 @@ class WebRService {
                             !line.trim().startsWith("---")
                         )
                     ].join('\n');
-                } else {
-                    // Handle regular output
-                    const jsResult = await result.toJs();
-                    output = this.formatROutput(jsResult);
-                }
+                } 
+                
+                // Handle regular output
+                const jsResult = await result.toJs();
+                return this.formatROutput(jsResult);
+    
             } catch (conversionError) {
                 console.error("Conversion error:", conversionError);
-                // If conversion fails, try to get string representation
+                
+                // Fallback: try to get string representation
                 try {
-                    const stringOutput = await this.webR.evalR(`capture.output(print(${code.trim()}))`);
+                    const stringOutput = await this.webR.evalR(`capture.output(print(${objectName}))`);
                     const stringJS = await stringOutput.toJs();
-                    output = stringJS.values.join('\n');
+                    return stringJS.values.join('\n');
                 } catch (stringError) {
-                    output = await result.toString();
+                    return await result.toString();
                 }
             }
-
-            return output;
         } catch (error) {
             throw new Error(`R execution error: ${error.message}`);
         }
