@@ -35,7 +35,6 @@ class WebRService {
 
         try {
             const result = await this.webR.evalR(code);
-            console.log(result);
             let output;
 
             try {
@@ -77,8 +76,8 @@ class WebRService {
     }
 
     formatROutput(obj) {
-        console.log(obj);
-        if (!obj ||!obj.type) return '';
+        console.log("Formatting object:", obj);
+        if (!obj || !obj.type) return '';
     
         switch (obj.type) {
             case 'double':
@@ -87,31 +86,74 @@ class WebRService {
             case 'character':
                 return ` ${obj.values.join(' ')}`;
             
-            case 'list':  // This handles all lists
-                if (obj.names && obj.names.length > 0) { 
-                    // This is the specific case for named lists
-                    let output = `${obj.class? obj.class + ':\n': 'List:\n'}`;
-                    for (let key of obj.names) {
-                        output += `${key}:\n${this.formatROutput(obj.values[obj.names.indexOf(key)])}\n`;
+            case 'list':
+                // Check if this is a linear model (lm) object
+                if (obj.class && obj.class.includes('lm')) {
+                    return this.formatLinearModel(obj);
+                }
+                
+                // Handle regular named lists
+                if (obj.names && obj.names.length > 0) {
+                    let output = `${obj.class ? obj.class.join(' ') + ':\n' : 'List:\n'}`;
+                    for (let i = 0; i < obj.names.length; i++) {
+                        const key = obj.names[i];
+                        const value = obj.values[i];
+                        if (value !== undefined) {
+                            output += `$${key}\n${this.formatROutput(value)}\n`;
+                        }
                     }
                     return output;
-                } else {
-                    // This is for regular lists without names
-                    return `List:\n${obj.values.map((val, i) => 
-                        `[[${i + 1}]]\n${this.formatROutput(val)}`
-                    ).join('\n')}`;
                 }
+                
+                // Handle unnamed lists
+                return `List:\n${obj.values.map((val, i) => 
+                    `[[${i + 1}]]\n${this.formatROutput(val)}`
+                ).join('\n')}`;
 
             case 'data.frame':
                 const colNames = obj.names || [];
                 const rows = obj.values;
-                // Create the formatted output string first
-                const formattedRows = rows.map(row => row.values.join('\t')).join('\n'); 
-                return colNames.join('\t') + '\n' + formattedRows; // Then return it
-                
+                return colNames.join('\t') + '\n' + 
+                       rows.map(row => row.values.join('\t')).join('\n');
+            
             default:
                 return `Unsupported type: ${obj.type}`;
         }
+    }
+
+    formatLinearModel(lmObj) {
+        let output = 'Call:\n';
+        
+        // Format the call (formula)
+        if (lmObj.values.find(v => v.names && v.names.includes('call'))) {
+            output += this.formatROutput(lmObj.values[lmObj.names.indexOf('call')]) + '\n\n';
+        }
+
+        // Format coefficients
+        const coefficients = lmObj.values.find(v => v.names && v.names.includes('coefficients'));
+        if (coefficients) {
+            output += 'Coefficients:\n';
+            const coefValues = coefficients.values;
+            const coefNames = coefficients.names || [];
+            coefValues.forEach((coef, i) => {
+                output += `${coefNames[i] || 'Unknown'}: ${coef}\n`;
+            });
+        }
+
+        // Format residuals summary if available
+        const residuals = lmObj.values.find(v => v.names && v.names.includes('residuals'));
+        if (residuals) {
+            output += '\nResidual summary:\n';
+            output += this.formatROutput(residuals) + '\n';
+        }
+
+        // Format R-squared if available
+        const rSquared = lmObj.values.find(v => v.names && v.names.includes('r.squared'));
+        if (rSquared) {
+            output += `\nR-squared: ${this.formatROutput(rSquared)}\n`;
+        }
+
+        return output;
     }
     
     async cleanup() {
