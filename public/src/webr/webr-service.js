@@ -35,7 +35,7 @@ class WebRService {
 
         try {
             const result = await this.webR.evalR(code);
-            console.log('WebR Result --> '+result);
+            console.log(result);
             let output;
 
             try {
