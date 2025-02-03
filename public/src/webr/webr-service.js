@@ -29,7 +29,9 @@ class WebRService {
             // Set up canvas as default graphics device
             await this.webR.evalRVoid('options(device=webr::canvas)');
             
+            // Load packages and configure graphics
             await this.loadRequiredPackages();
+            
             this.isInitialized = true;
             return true;
         } catch (error) {
@@ -42,10 +44,20 @@ class WebRService {
         if (this.packagesLoaded) return;
 
         try {
-            for (const pkg of this.requiredPackages) {
-                await this.webR.installPackages([pkg]);
-                await this.webR.evalRVoid(`library(${pkg})`);
-            }
+            console.log('Installing and loading required R packages...');
+            
+            // First install all required packages
+            await this.webR.installPackages(this.requiredPackages, true);
+            
+            // Then set up the graphics device and load packages
+            await this.webR.evalRVoid(`
+                # Set up graphics device
+                options(device=webr::canvas)
+                options(repr.plot.width=6, repr.plot.height=4)
+                
+                # Load required packages
+                library(ggplot2)
+            `);
             
             this.packagesLoaded = true;
             console.log('R packages loaded successfully');
@@ -61,8 +73,14 @@ class WebRService {
         }
 
         try {
+            // Check if code contains ggplot
+            const isGgplot = code.includes('ggplot(');
+            
+            // If it's a ggplot command, wrap it in print()
+            const execCode = isGgplot ? `print(${code})` : code;
+
             // Use captureR to get all output including plots
-            const capture = await this.shelter.captureR(code, {
+            const capture = await this.shelter.captureR(execCode, {
                 withAutoprint: true,
                 captureConditions: true,
                 captureStreams: true,
