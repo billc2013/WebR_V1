@@ -26,9 +26,6 @@ class WebRService {
             // Create a shelter for memory management
             this.shelter = await new this.webR.Shelter();
             
-            // Set up canvas as default graphics device
-            await this.webR.evalRVoid('options(device=webr::canvas)');
-            
             // Load packages and configure graphics
             await this.loadRequiredPackages();
             
@@ -73,29 +70,29 @@ class WebRService {
         }
 
         try {
-            // Check if code contains ggplot
             const isGgplot = code.includes('ggplot(');
+            let execCode = code;
             
             if (isGgplot) {
                 console.log('ggplot detected, adding debugging...');
-                // Add debugging for ggplot object
-                const debugCode = `
-                    {
+                execCode = `
+                    tryCatch({
                         plot_obj <- ${code}
-                        print("=== Plot Object Class ===")
+                        cat("=== Plot Object Class ===\\n")
                         print(class(plot_obj))
-                        print("=== Plot Object Structure ===")
-                        print(str(plot_obj))
-                        print("=== Attempting to render plot ===")
+                        cat("=== Plot Object Structure ===\\n")
+                        str(plot_obj)
+                        cat("=== Attempting to render plot ===\\n")
                         print(plot_obj)
-                    }
+                    }, error = function(e) {
+                        cat("Error in ggplot execution:", conditionMessage(e), "\\n")
+                    })
                 `;
-                console.log('Executing code with debugging:', debugCode);
-                code = debugCode;
+                console.log('Executing ggplot code with debugging:', execCode);
             }
 
-            // Use captureR to get all output including plots
-            const capture = await this.shelter.captureR(code, {
+            console.log('Starting R code execution...');
+            const capture = await this.shelter.captureR(execCode, {
                 withAutoprint: true,
                 captureConditions: true,
                 captureStreams: true,
@@ -107,81 +104,57 @@ class WebRService {
                 }
             });
 
-            // Debug output
-            console.log('WebR Capture Result:', capture);
-            if (capture.images) {
-                console.log('Number of captured images:', capture.images.length);
-            }
+            console.log('Capture result:', {
+                hasOutput: !!capture.output,
+                outputLength: capture.output?.length,
+                hasImages: !!capture.images,
+                imageCount: capture.images?.length,
+                hasResult: !!capture.result
+            });
+
+            let outputText = '';
             if (capture.output) {
-                console.log('Captured output:', capture.output);
+                for (const out of capture.output) {
+                    console.log('Processing output:', out.type);
+                    switch (out.type) {
+                        case 'stdout':
+                        case 'stderr':
+                            outputText += out.data + '\n';
+                            break;
+                        case 'message':
+                        case 'warning':
+                        case 'error':
+                            try {
+                                const condition = await out.data.toJs();
+                                outputText += `${out.type}: ${condition.message}\n`;
+                            } catch (e) {
+                                outputText += `${out.type}: ${out.data}\n`;
+                            }
+                            break;
+                    }
+                }
             }
+
+            // If we have a result, try to convert it
+            let result = null;
             if (capture.result) {
-                console.log('Result type:', typeof capture.result);
-                const jsResult = await capture.result.toJs();
-                console.log('Result converted to JS:', jsResult);
-            }
-
-            // Process the captured output
-            let outputText = '';
-            
-            // Handle standard output and errors
-            if (capture.output) {
-                for (const out of capture.output) {
-                    switch (out.type) {
-                        case 'stdout':
-                        case 'stderr':
-                            outputText += out.data + '\n';
-                            break;
-                        case 'message':
-                        case 'warning':
-                        case 'error':
-                            const condition = await out.data.toJs();
-                            outputText += `${out.type}: ${condition.message}\n`;
-                            break;
-                    }
+                try {
+                    result = await capture.result.toJs();
+                    console.log('Successfully converted result:', result);
+                } catch (e) {
+                    console.log('Failed to convert result:', e);
+                    // Don't throw - we might still have useful output and images
                 }
             }
 
-            // Return the results and any captured plots
             return {
                 output: outputText.trim(),
-                images: capture.images,
-                result: capture.result ? await capture.result.toJs() : null
+                images: capture.images || [],
+                result: result
             };
-        } catch (error) {
-            console.error('Detailed error:', error);
-            throw new Error(`R execution error: ${error.message}`);
-        }
-    }
 
-            // Process the captured output
-            let outputText = '';
-            
-            // Handle standard output and errors
-            if (capture.output) {
-                for (const out of capture.output) {
-                    switch (out.type) {
-                        case 'stdout':
-                        case 'stderr':
-                            outputText += out.data + '\n';
-                            break;
-                        case 'message':
-                        case 'warning':
-                        case 'error':
-                            const condition = await out.data.toJs();
-                            outputText += `${out.type}: ${condition.message}\n`;
-                            break;
-                    }
-                }
-            }
-
-            // Return the results and any captured plots
-            return {
-                output: outputText.trim(),
-                images: capture.images,
-                result: capture.result ? await capture.result.toJs() : null
-            };
         } catch (error) {
+            console.error('Detailed error in executeCode:', error);
             throw new Error(`R execution error: ${error.message}`);
         }
     }
