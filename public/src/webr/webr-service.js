@@ -14,7 +14,7 @@ class WebRService {
 
         try {
             this.webR = new WebR({
-                baseURL: 'https://webr.r-wasm.org/latest',
+                baseURL: 'https://webr.r-wasm.org/latest/',
                 serviceWorkerUrl: undefined,
                 debug: false
             });
@@ -39,9 +39,13 @@ class WebRService {
             // Show loading message
             console.log('Loading required R packages...');
             
-            // Install and load ggplot2
-            await this.webR.evalR('install.packages("ggplot2")');
-            await this.webR.evalR('library(ggplot2)');
+            // Install packages using WebR's installPackages method
+            await this.webR.installPackages(this.requiredPackages);
+            
+            // Load the packages using library()
+            for (const pkg of this.requiredPackages) {
+                await this.webR.evalR(`library(${pkg})`);
+            }
             
             this.packagesLoaded = true;
             console.log('R packages loaded successfully');
@@ -50,7 +54,38 @@ class WebRService {
             throw error;
         }
     }
-    
+
+    async createPlot(plotCode) {
+        if (!this.isInitialized) {
+            throw new Error('WebR not initialized');
+        }
+
+        try {
+            // Set up PNG device with better resolution for ggplot
+            await this.webR.evalR(`
+                png(filename = "plot.png",
+                    width = 800,
+                    height = 600,
+                    res = 96,
+                    bg = "white")
+            `);
+            
+            // Execute plotting code
+            await this.webR.evalR(plotCode);
+            
+            // Close device
+            await this.webR.evalR('dev.off()');
+
+            // Get the plot binary data
+            const plotData = await this.webR.FS.readFile("plot.png");
+            
+            // Convert to blob
+            return new Blob([plotData], { type: 'image/png' });
+        } catch (error) {
+            throw new Error(`Plot creation error: ${error.message}`);
+        }
+    }
+
     async executeCode(code) {
         if (!this.isInitialized) {
             throw new Error('WebR not initialized');
@@ -72,9 +107,12 @@ class WebRService {
                 const classJS = await classResult.toJs();
                 console.log("Object class:", classJS);
 
-                // Special handling for linear models
-                if (classJS.values && classJS.values.includes('lm')) {
-                    // Capture the print output of the model
+                // Special handling for different types of objects
+                if (classJS.values && classJS.values.includes('gg')) {
+                    // Handle ggplot objects
+                    return await this.createPlot(code);
+                } else if (classJS.values && classJS.values.includes('lm')) {
+                    // Handle linear models
                     const printOutput = await this.webR.evalR(`capture.output(print(${objectName}))`);
                     const summaryOutput = await this.webR.evalR(`capture.output(summary(${objectName}))`);
                     
@@ -113,38 +151,7 @@ class WebRService {
             throw new Error(`R execution error: ${error.message}`);
         }
     }
-
-    async createPlot(plotCode) {
-        if (!this.isInitialized) {
-            throw new Error('WebR not initialized');
-        }
-
-        try {
-            // Set up PNG device with better resolution for ggplot
-            await this.webR.evalR(`
-                png(filename = "plot.png",
-                    width = 800,
-                    height = 600,
-                    res = 96,
-                    bg = "white")
-            `);
-            
-            // Execute plotting code
-            await this.webR.evalR(plotCode);
-            
-            // Close device
-            await this.webR.evalR('dev.off()');
-
-            // Get the plot binary data
-            const plotData = await this.webR.FS.readFile("plot.png");
-            
-            // Convert to blob
-            return new Blob([plotData], { type: 'image/png' });
-        } catch (error) {
-            throw new Error(`Plot creation error: ${error.message}`);
-        }
-    }
-
+    
     formatROutput(obj) {
         console.log("Formatting object:", obj);
         if (!obj || !obj.type) return '';
