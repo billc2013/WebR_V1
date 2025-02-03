@@ -35,12 +35,30 @@ class WebRService {
 
         try {
             const result = await this.webR.evalR(code);
+            console.log("Raw R result:", result);
             let output;
 
             try {
+                // First try to get the class of the object
+                const classResult = await this.webR.evalR(`class(${code.split('<-')[0].trim()})`);
+                const classJS = await classResult.toJs();
+                console.log("Object class:", classJS);
+
+                // Convert the result to JavaScript
                 const jsResult = await result.toJs();
-                output = this.formatROutput(jsResult);
+                console.log("Converted to JS:", jsResult);
+
+                // Special handling for linear models
+                if (classJS.values && classJS.values.includes('lm')) {
+                    // Get a formatted summary of the model
+                    const summary = await this.webR.evalR(`capture.output(summary(${code.split('<-')[0].trim()}))`);
+                    const summaryJS = await summary.toJs();
+                    output = summaryJS.values.join('\n');
+                } else {
+                    output = this.formatROutput(jsResult);
+                }
             } catch (conversionError) {
+                console.error("Conversion error:", conversionError);
                 output = await result.toString();
             }
 
@@ -84,15 +102,15 @@ class WebRService {
             case 'integer':
             case 'logical':
             case 'character':
+                if (obj.names) {
+                    // Handle named vectors
+                    return obj.names.map((name, i) => 
+                        `${name}: ${obj.values[i]}`
+                    ).join('\n');
+                }
                 return ` ${obj.values.join(' ')}`;
             
             case 'list':
-                // Check if this is a linear model (lm) object
-                if (obj.class && obj.class.includes('lm')) {
-                    return this.formatLinearModel(obj);
-                }
-                
-                // Handle regular named lists
                 if (obj.names && obj.names.length > 0) {
                     let output = `${obj.class ? obj.class.join(' ') + ':\n' : 'List:\n'}`;
                     for (let i = 0; i < obj.names.length; i++) {
@@ -104,8 +122,6 @@ class WebRService {
                     }
                     return output;
                 }
-                
-                // Handle unnamed lists
                 return `List:\n${obj.values.map((val, i) => 
                     `[[${i + 1}]]\n${this.formatROutput(val)}`
                 ).join('\n')}`;
