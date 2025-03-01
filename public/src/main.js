@@ -31,25 +31,73 @@ function showAuth() {
     authContainer.classList.remove('hidden');
     mainContainer.classList.add('hidden');
     
-    // Create auth form if it doesn't exist
+    // Create auth form with tabbed interface
     if (!authUI.innerHTML) {
         authUI.innerHTML = `
             <div class="auth-form">
-                <h2>Sign In or Sign Up</h2>
-                <input type="email" id="email" placeholder="Email" class="auth-input">
-                <input type="password" id="password" placeholder="Password" class="auth-input">
-                <div class="auth-buttons">
-                    <button id="signin-btn" class="btn">Sign In</button>
-                    <button id="signup-btn" class="btn">Sign Up</button>
+                <h2>Conservation Ecology R Lab</h2>
+                <p class="auth-description">Access your browser-based R programming environment for conservation biology</p>
+                
+                <div class="auth-tabs">
+                    <button id="signin-tab" class="auth-tab auth-tab-active">Sign In</button>
+                    <button id="signup-tab" class="auth-tab">Create Account</button>
+                </div>
+                
+                <div id="signin-panel" class="auth-panel">
+                    <p>Sign in with your existing account</p>
+                    <input type="email" id="signin-email" placeholder="Email" class="auth-input">
+                    <input type="password" id="signin-password" placeholder="Password" class="auth-input">
+                    <button id="signin-btn" class="btn btn-primary btn-full">Sign In</button>
+                </div>
+                
+                <div id="signup-panel" class="auth-panel hidden">
+                    <p>Create a new account to get started</p>
+                    <input type="email" id="signup-email" placeholder="Email" class="auth-input">
+                    <input type="password" id="signup-password" placeholder="Password" class="auth-input">
+                    <input type="password" id="confirm-password" placeholder="Confirm Password" class="auth-input">
+                    <button id="signup-btn" class="btn btn-primary btn-full">Create Account</button>
                 </div>
             </div>
         `;
 
+        // Add tab switching logic
+        document.getElementById('signin-tab').addEventListener('click', () => {
+            document.getElementById('signin-tab').classList.add('auth-tab-active');
+            document.getElementById('signup-tab').classList.remove('auth-tab-active');
+            document.getElementById('signin-panel').classList.remove('hidden');
+            document.getElementById('signup-panel').classList.add('hidden');
+        });
+        
+        document.getElementById('signup-tab').addEventListener('click', () => {
+            document.getElementById('signup-tab').classList.add('auth-tab-active');
+            document.getElementById('signin-tab').classList.remove('auth-tab-active');
+            document.getElementById('signup-panel').classList.remove('hidden');
+            document.getElementById('signin-panel').classList.add('hidden');
+        });
+
         // Add auth event listeners
-        document.getElementById('signin-btn').addEventListener('click', handleSignIn);
-        document.getElementById('signup-btn').addEventListener('click', handleSignUp);
+        document.getElementById('signin-btn').addEventListener('click', () => {
+            const email = document.getElementById('signin-email').value;
+            const password = document.getElementById('signin-password').value;
+            handleSignIn(email, password);
+        });
+        
+        document.getElementById('signup-btn').addEventListener('click', () => {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            // Simple validation
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return;
+            }
+            
+            handleSignUp(email, password);
+        });
     }
 }
+
 
 // Show the main application
 function showApp() {
@@ -58,9 +106,11 @@ function showApp() {
 }
 
 // Handle sign in
-async function handleSignIn() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+async function handleSignIn(email, password) {
+    if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+    }
 
     try {
         statusIndicator.textContent = 'Signing in...';
@@ -76,10 +126,13 @@ async function handleSignIn() {
     }
 }
 
+
 // Handle sign up
-async function handleSignUp() {
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
+async function handleSignUp(email, password) {
+    if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+    }
 
     try {
         statusIndicator.textContent = 'Creating account...';
