@@ -4,6 +4,8 @@ import { signIn, signUp, signOut, getUser } from './supabase/auth.js';
 import { uploadCSV, downloadFile } from './supabase/storageService.js';
 import './components/webRRepl.js';  // Import the WebR REPL component
 import { webrService } from './webr/webr-service.js';
+import './components/rHelperComponent.js';  // Import the R Helper component
+
 
 // DOM Elements
 const authContainer = document.getElementById('auth-container');
@@ -103,6 +105,19 @@ function showAuth() {
 function showApp() {
     authContainer.classList.add('hidden');
     mainContainer.classList.remove('hidden');
+        // Initialize the helper component if it doesn't exist
+    if (!document.querySelector('r-helper')) {
+        const helperContainer = document.createElement('div');
+        helperContainer.id = 'helper-container';
+        helperContainer.innerHTML = '<r-helper></r-helper>';
+        
+        // Insert the helper between the header and the REPL
+        const header = document.querySelector('header');
+        const repl = document.querySelector('webr-repl');
+        if (header && repl) {
+            header.parentNode.insertBefore(helperContainer, repl);
+        }
+    }
 }
 
 // Handle sign in

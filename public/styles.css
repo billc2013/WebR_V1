@@ -263,3 +263,155 @@ header {
 .plot-card button:hover {
     background: #2980b9;
 }
+
+/* r-helper-styles.css */
+r-helper {
+    display: block;
+    margin: 1rem 0;
+}
+
+.helper-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1.5rem;
+}
+
+.helper-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.helper-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.helper-content {
+    max-height: 800px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease;
+}
+
+.helper-content.hidden {
+    max-height: 0;
+    overflow: hidden;
+}
+
+.helper-nav {
+    display: flex;
+    overflow-x: auto;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.helper-nav-btn {
+    padding: 0.7rem 1.5rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    margin-right: 0.5rem;
+    border-bottom: 3px solid transparent;
+}
+
+.helper-nav-btn:hover {
+    background: #f0f0f0;
+}
+
+.helper-nav-btn.active {
+    background: white;
+    border-color: var(--secondary-color);
+    border-bottom: 3px solid var(--secondary-color);
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+.tutorial-display {
+    padding: 1.5rem;
+}
+
+.tutorial-description {
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.code-block {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 4px;
+    border-left: 4px solid var(--secondary-color);
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    white-space: pre-wrap;
+    overflow-x: auto;
+    font-size: 0.9rem;
+    margin: 0 0 1rem 0;
+}
+
+.code-actions {
+    margin-bottom: 1.5rem;
+}
+
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.button-group .btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.explanation {
+    background: #f0f7ff;
+    padding: 1rem;
+    border-radius: 4px;
+    margin-top: 1rem;
+}
+
+.explanation h5 {
+    margin-top: 0;
+    color: var(--primary-color);
+}
+
+.explanation ul {
+    margin-bottom: 0;
+    padding-left: 1.5rem;
+}
+
+.explanation li {
+    margin-bottom: 0.5rem;
+}
+
+.tutorial-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+.step-indicator {
+    font-size: 0.9rem;
+    color: #666;
+}
+
+.nav-btn {
+    padding: 0.5rem 1rem;
+    background: var(--secondary-color);
+    color: white;
+}
+
+.nav-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
