@@ -111,11 +111,12 @@ function showApp() {
         helperContainer.id = 'helper-container';
         helperContainer.innerHTML = '<r-helper></r-helper>';
         
-        // Insert the helper between the header and the REPL
-        const header = document.querySelector('header');
-        const repl = document.querySelector('webr-repl');
-        if (header && repl) {
-            header.parentNode.insertBefore(helperContainer, repl);
+    // Insert the helper inside the repl container, before the output
+        const replContainer = document.querySelector('.repl-container');
+        const outputElement = document.querySelector('.repl-output');
+       
+        if (replContainer && outputElement) {
+            replContainer.insertBefore(helperContainer, outputElement);
         }
     }
 }

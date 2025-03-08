@@ -102,7 +102,9 @@ export class RHelperComponent extends HTMLElement {
             <div class="helper-container">
                 <div class="helper-header">
                     <h3>Step-by-Step R Tutorial</h3>
-                    <button id="toggle-helper" class="btn">Show Tutorial</button>
+                    <button id="toggle-helper" class="tutorial-toggle-fixed">
+                        Show Tutorial
+                    </button>
                 </div>
                 <div id="helper-content" class="helper-content hidden">
                     <div class="helper-nav">
@@ -128,10 +130,12 @@ export class RHelperComponent extends HTMLElement {
         // Toggle helper visibility
         const toggleBtn = this.querySelector('#toggle-helper');
         const helperContent = this.querySelector('#helper-content');
-        
+        const helperContainer = this.querySelector('.helper-container');
+
         toggleBtn.addEventListener('click', () => {
             const isHidden = helperContent.classList.contains('hidden');
             helperContent.classList.toggle('hidden');
+            helperContainer.classList.toggle('hidden-panel', !isHidden);
             toggleBtn.textContent = isHidden ? 'Hide Tutorial' : 'Show Tutorial';
         });
 

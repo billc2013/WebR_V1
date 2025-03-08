@@ -8,6 +8,7 @@ webr-repl {
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
+    position: relative;
 }
 
 .repl-output {
@@ -60,7 +61,7 @@ webr-repl {
   .clear-button:hover {
     background: #c0392b;  /* Darker red on hover */
   }
-  
+
 .run-button {
     background: #3498db;
     color: white;
