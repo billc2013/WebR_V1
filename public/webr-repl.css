@@ -18,6 +18,13 @@ webr-repl {
     white-space: pre-wrap;
     word-break: break-word;
     overflow-wrap: break-word;
+    
+    /* Add these properties */
+    height: 400px;          /* Fixed height - adjust as needed */
+    overflow-y: auto;       /* Add vertical scrollbar when needed */
+    padding: 1rem;          /* Internal spacing */
+    background: #f8f9fa;    /* Light background for better readability */
+    border-radius: 8px 8px 0 0; /* Round top corners to match container */
   }
 
 .repl-input-wrapper {
@@ -35,6 +42,25 @@ webr-repl {
     margin-bottom: 0.5rem;
 }
 
+.button-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+  
+  .clear-button {
+    background: #e74c3c;  /* Red color to indicate deletion */
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+  }
+  
+  .clear-button:hover {
+    background: #c0392b;  /* Darker red on hover */
+  }
+  
 .run-button {
     background: #3498db;
     color: white;

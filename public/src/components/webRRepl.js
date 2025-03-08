@@ -18,7 +18,10 @@ export class WebRRepl extends HTMLElement {
                 <div id="output" class="repl-output"></div>
                 <div class="repl-input-wrapper">
                     <textarea id="input" class="repl-input" rows="3" placeholder="Enter R code here..."></textarea>
-                    <button id="runButton" class="run-button">Run</button>
+                    <div class="button-group">
+                        <button id="runButton" class="run-button">Run</button>
+                        <button id="clearButton" class="clear-button">Clear Output</button>
+                    </div>
                 </div>
                 <div id="plot-output" class="plot-output"></div>
             </div>
@@ -27,6 +30,7 @@ export class WebRRepl extends HTMLElement {
         this.outputElement = this.querySelector('#output');
         this.inputElement = this.querySelector('#input');
         this.runButton = this.querySelector('#runButton');
+        this.clearButton = this.querySelector('#clearButton');
         this.plotOutput = this.querySelector('#plot-output');
 
         // Initialize WebR
@@ -40,6 +44,7 @@ export class WebRRepl extends HTMLElement {
 
         // Event listeners
         this.runButton.addEventListener('click', () => this.executeCode());
+        this.clearButton.addEventListener('click', () => this.clearOutput());
         this.inputElement.addEventListener('keydown', (e) => this.handleKeyPress(e));
 
         // Load previous state if user is logged in
@@ -202,6 +207,13 @@ export class WebRRepl extends HTMLElement {
     appendOutput(text) {
         this.outputElement.textContent += text;
         this.outputElement.scrollTop = this.outputElement.scrollHeight;
+    }
+
+    clearOutput() {
+        if (confirm("Are you sure you want to clear the output?")) {
+            this.outputElement.textContent = '';
+            this.appendOutput('Output cleared.\n');
+        }
     }
 
     disconnectedCallback() {
