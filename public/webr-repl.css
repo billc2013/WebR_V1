@@ -11,14 +11,14 @@ webr-repl {
 }
 
 .repl-output {
-    min-height: 200px;
-    max-height: 400px;
-    padding: 1rem;
-    background: #f8f9fa;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    tab-size: 4;
     white-space: pre-wrap;
-    overflow-y: auto;
-}
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
 
 .repl-input-wrapper {
     padding: 1rem;
