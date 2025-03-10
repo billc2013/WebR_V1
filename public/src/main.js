@@ -106,19 +106,17 @@ function showApp() {
     authContainer.classList.add('hidden');
     mainContainer.classList.remove('hidden');
         // Initialize the helper component if it doesn't exist
-    if (!document.querySelector('r-helper')) {
-        const helperContainer = document.createElement('div');
-        helperContainer.id = 'helper-container';
-        helperContainer.innerHTML = '<r-helper></r-helper>';
-        
-    // Insert the helper inside the repl container, before the output
-        const replContainer = document.querySelector('.repl-container');
-        const outputElement = document.querySelector('.repl-output');
-       
-        if (replContainer && outputElement) {
-            replContainer.insertBefore(helperContainer, outputElement);
+        if (!document.querySelector('r-helper')) {
+            const helperContainer = document.createElement('div');
+            helperContainer.id = 'helper-container';
+            helperContainer.innerHTML = '<r-helper></r-helper>';
+            
+            // Insert the helper before the repl component (not inside it)
+            const repl = document.querySelector('webr-repl');
+            if (repl && repl.parentNode) {
+                repl.parentNode.insertBefore(helperContainer, repl);
+            }
         }
-    }
 }
 
 // Handle sign in

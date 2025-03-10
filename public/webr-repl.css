@@ -9,6 +9,7 @@ webr-repl {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     overflow: hidden;
     position: relative;
+    margin-top: 10px;
 }
 
 .repl-output {
@@ -43,6 +44,16 @@ webr-repl {
     margin-bottom: 0.5rem;
 }
 
+#toggle-helper {
+    background-color: #3498db;
+    color: white;
+    transition: background-color 0.2s;
+  }
+  
+  #toggle-helper:hover {
+    background-color: #2980b9;
+  }
+  
 .button-group {
     display: flex;
     gap: 0.5rem;

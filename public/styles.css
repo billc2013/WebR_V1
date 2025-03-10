@@ -243,10 +243,13 @@ r-helper {
 }
 
 .helper-container {
-    position: absolute;
+    position: relative;
     width: 100%;
     z-index: 10;
-    transition: transform 0.3s ease;
+    background: white;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
   }
 
   /* Default state - panel is hidden above the output */
@@ -255,33 +258,33 @@ r-helper {
     position: absolute;
   }
 
-.helper-header {
+  .helper-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #eee;
-}
-
-.helper-header h3 {
-    margin: 0;
-    color: var(--primary-color);
-}
+    padding: 10px 15px;
+    background: #f8f9fa;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+  }
 
 /* Helper content should have a solid background */
 .helper-content {
     background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    max-height: 400px; /* Match your output height */
+    transition: max-height 0.3s ease, opacity 0.3s ease;
+    max-height: 400px;
     overflow-y: auto;
+    opacity: 1;
   }
   
 
-/* .helper-content.hidden {
+.helper-content.hidden {
     max-height: 0;
+    opacity: 0;
     overflow: hidden;
-} */
+    padding: 0;
+    border: none;
+  }
 
 .helper-nav {
     display: flex;

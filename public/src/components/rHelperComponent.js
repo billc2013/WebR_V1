@@ -4,6 +4,7 @@ export class RHelperComponent extends HTMLElement {
         super();
         this.tutorials = [];
         this.currentStep = 0;
+        this.isContentVisible = false;
     }
 
     async connectedCallback() {
@@ -102,11 +103,11 @@ export class RHelperComponent extends HTMLElement {
             <div class="helper-container">
                 <div class="helper-header">
                     <h3>Step-by-Step R Tutorial</h3>
-                    <button id="toggle-helper" class="tutorial-toggle-fixed">
-                        Show Tutorial
+                    <button id="toggle-helper" class="btn">
+                        ${this.isContentVisible ? 'Hide Tutorial' : 'Show Tutorial'}
                     </button>
                 </div>
-                <div id="helper-content" class="helper-content hidden">
+                <div id="helper-content" class="helper-content ${this.isContentVisible ? '' : 'hidden'}">
                     <div class="helper-nav">
                         ${this.tutorials.map((tutorial, index) => 
                             `<button class="helper-nav-btn ${index === this.currentStep ? 'active' : ''}" 
@@ -130,14 +131,13 @@ export class RHelperComponent extends HTMLElement {
         // Toggle helper visibility
         const toggleBtn = this.querySelector('#toggle-helper');
         const helperContent = this.querySelector('#helper-content');
-        const helperContainer = this.querySelector('.helper-container');
-
+        
         toggleBtn.addEventListener('click', () => {
-            const isHidden = helperContent.classList.contains('hidden');
-            helperContent.classList.toggle('hidden');
-            helperContainer.classList.toggle('hidden-panel', !isHidden);
-            toggleBtn.textContent = isHidden ? 'Hide Tutorial' : 'Show Tutorial';
+            this.isContentVisible = !this.isContentVisible;
+            helperContent.classList.toggle('hidden', !this.isContentVisible);
+            toggleBtn.textContent = this.isContentVisible ? 'Hide Tutorial' : 'Show Tutorial';
         });
+        
 
         // Navigation button clicks
         const navBtns = this.querySelectorAll('.helper-nav-btn');
