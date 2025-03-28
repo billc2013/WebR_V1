@@ -1,0 +1,72 @@
+.split {
+    display: flex;
+    flex-direction: row;
+  }
+  
+  .gutter {
+    background-color: #eee;
+    background-repeat: no-repeat;
+    background-position: 50%;
+  }
+  
+  .gutter.gutter-horizontal {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAeCAYAAADkftS9AAAAIklEQVQoU2M4c+bMfxAGAgYYmwGrIIiDjrELjpo5aiZeMwF+yNnOs5KSvgAAAABJRU5ErkJggg==');
+    cursor: col-resize;
+  }
+  
+  .gutter.gutter-vertical {
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAFAQMAAABo7865AAAABlBMVEVHcEzMzMzyAv2sAAAAAXRSTlMAQObYZgAAABBJREFUeF5jOAMEEAIEEFwAn3kMwcB6I2AAAAAASUVORK5CYII=');
+    cursor: row-resize;
+  }
+  
+  .split-container {
+    height: calc(100vh - 100px);
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .horizontal-split {
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+  }
+  
+  .vertical-split {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+  
+  .panel {
+    overflow: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding: 10px;
+  }
+  
+  .panel-title {
+    font-weight: bold;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+  }
+  
+  /* Special styling for panels */
+  #terminal-panel {
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+  
+  #plots-panel {
+    padding: 10px;
+  }
+  
+  #tutorial-panel {
+    padding: 0;
+  }
+  
+  #files-panel {
+    padding: 10px;
+  }

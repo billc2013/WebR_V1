@@ -18,50 +18,45 @@ export class WebRRepl extends HTMLElement {
     }
 
     async connectedCallback() {
-        this.innerHTML = `
-            <div class="repl-container">
-                <div id="terminal-container" class="terminal-container"></div>
-                <div class="terminal-controls">
-                    <button id="clearButton" class="clear-button">Clear Terminal</button>
-                </div>
-                <div id="plot-output" class="plot-output"></div>
-            </div>
-        `;
-        this.terminalContainer = this.querySelector('#terminal-container');
-        this.clearButton = this.querySelector('#clearButton');
-        this.plotOutput = this.querySelector('#plot-output');
+        // Instead of creating your HTML structure, just reference the existing elements
+        this.terminalContainer = document.getElementById('terminal-container');
+        this.clearButton = document.getElementById('clearButton');
+        this.plotOutput = document.getElementById('plot-output');
 
-        // Initialize xterm.js
-        this.initTerminal();
+        setTimeout(async () => {
+            // Initialize xterm.js
+            this.initTerminal();
 
-        // Initialize WebR
-        try {
-            this.writeToTerminal('Initializing R environment... This may take a moment.\r\n', {bold: true});
-            await webrService.initialize();
-            this.writeToTerminal('R environment ready. Type R commands and press Enter to run.\r\n', {bold: true, fg: 'green'});
-            this.writeToTerminal('Use Ctrl+Enter to execute multi-line code.\r\n', {fg: 'blue'});
-            this.writeToTerminal('> ');
-        } catch (error) {
-            this.writeToTerminal(`Failed to initialize R environment: ${error.message}\r\n`, {bold: true, fg: 'red'});
-            return;
-        }
-
-        // Event listeners
-        this.clearButton.addEventListener('click', () => this.clearTerminal());
-
-        // Load previous state if user is logged in
-        const user = await getUser();
-        if (user) {
+            // Initialize WebR
             try {
-                const state = await loadReplState(user.id);
-                if (state) {
-                    this.commandHistory = JSON.parse(state.command_history || '[]');
-                }
+                this.writeToTerminal('Initializing R environment... This may take a moment.\r\n', {bold: true});
+                await webrService.initialize();
+                this.writeToTerminal('R environment ready. Type R commands and press Enter to run.\r\n', {bold: true, fg: 'green'});
+                this.writeToTerminal('Use Ctrl+Enter to execute multi-line code.\r\n', {fg: 'blue'});
+                this.writeToTerminal('> ');
             } catch (error) {
-                console.error('Error loading REPL state:', error);
+                this.writeToTerminal(`Failed to initialize R environment: ${error.message}\r\n`, {bold: true, fg: 'red'});
+                return;
             }
-        }
+
+            // Event listeners
+            this.clearButton.addEventListener('click', () => this.clearTerminal());
+
+            // Load previous state if user is logged in
+            const user = await getUser();
+            if (user) {
+                try {
+                    const state = await loadReplState(user.id);
+                    if (state) {
+                        this.commandHistory = JSON.parse(state.command_history || '[]');
+                    }
+                } catch (error) {
+                    console.error('Error loading REPL state:', error);
+                }
+            }
+        },300);// Short delay to ensure DOM is ready    
     }
+
 
     initTerminal() {
         // Initialize xterm.js

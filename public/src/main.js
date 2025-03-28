@@ -100,6 +100,70 @@ function showAuth() {
     }
 }
 
+function initSplitPanels() {
+    // Create horizontal split (left/right)
+    const mainSplit = Split(['#left-split', '#right-split'], {
+        sizes: [65, 35],
+        minSize: [300, 300],
+        gutterSize: 10,
+        direction: 'horizontal',
+        onDrag: triggerResize
+    });
+
+    // For the terminal/plots vertical split (if you want more space for the terminal):
+    const leftSplit = Split(['#terminal-panel', '#plots-panel'], {
+        sizes: [70, 30], // More space for terminal, less for plots
+        minSize: [200, 100],
+        gutterSize: 10,
+        direction: 'vertical',
+        parent: '#left-split',
+        onDrag: triggerResize
+    });
+
+    // For the tutorial/files vertical split:
+    const rightSplit = Split(['#tutorial-panel', '#files-panel'], {
+        sizes: [65, 35], // More space for tutorials, less for files
+        minSize: [200, 100],
+        gutterSize: 10,
+        direction: 'vertical',
+        parent: '#right-split'
+    });
+
+    // Handle window resize for terminal
+    window.addEventListener('resize', () => {
+        const terminal = document.querySelector('webr-repl');
+        if (terminal && terminal.fitAddon) {
+            setTimeout(() => terminal.fitAddon.fit(), 100);
+        }
+    });
+
+    // Trigger a resize event after split initialization
+    window.dispatchEvent(new Event('resize'));
+}
+
+// Helper function to trigger terminal resize
+function triggerResize() {
+    setTimeout(() => {
+        const repl = document.querySelector('webr-repl');
+        if (repl && repl.fitAddon) {
+            repl.fitAddon.fit();
+        }
+    }, 100);
+}
+
+// Add this function to handle component initialization
+function initComponents() {
+    // Create and add the WebRRepl component to the terminal panel
+    const replElement = document.createElement('webr-repl');
+    document.getElementById('terminal-container').appendChild(replElement);
+    
+    // Ensure the r-helper is properly placed
+    if (!document.querySelector('r-helper')) {
+        const helperContainer = document.getElementById('tutorial-panel');
+        const helperElement = document.createElement('r-helper');
+        helperContainer.appendChild(helperElement);
+    }
+}
 
 // Show the main application
 function showApp() {
@@ -117,6 +181,11 @@ function showApp() {
                 repl.parentNode.insertBefore(helperContainer, repl);
             }
         }
+    // Initialize split panels
+    initSplitPanels();
+
+    // Then initialize components
+    setTimeout(initComponents, 100);
 }
 
 // Handle sign in

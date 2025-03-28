@@ -14,6 +14,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.1.0/css/xterm.min.css" />
     <!-- Optional: Add fit addon to make terminal resize to container -->
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.7.0/lib/xterm-addon-fit.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/split.js/1.6.5/split.min.js"></script>
+    <link rel="stylesheet" href="split.css">
     <!-- Add CORS headers -->
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
@@ -34,20 +36,41 @@
                     <button id="signout-btn" class="btn">Sign Out</button>
                 </div>
             </header>
-
-            <!-- Add the WebR REPL here -->
-            <webr-repl></webr-repl>
-
-            <!-- File manager -->
-            <div id="file-manager" class="file-container">
-                <div class="file-upload">
-                    <h3>Upload Data</h3>
-                    <input type="file" id="file-input" accept=".csv">
-                    <button id="upload-btn" class="btn">Upload</button>
-                </div>
-                <div class="file-list">
-                    <h3>Your Files</h3>
-                    <ul id="file-list"></ul>
+        
+            <div class="split-container">
+                <div class="horizontal-split" id="main-split">
+                    <div class="vertical-split" id="left-split">
+                        <div id="terminal-panel" class="panel">
+                            <div class="panel-title">R Terminal</div>
+                            <div id="terminal-container" class="terminal-container"></div>
+                            <div class="terminal-controls">
+                                <button id="clearButton" class="clear-button">Clear Terminal</button>
+                            </div>
+                        </div>
+                        <div id="plots-panel" class="panel">
+                            <div class="panel-title">Plots</div>
+                            <div id="plot-output" class="plot-output"></div>
+                        </div>
+                    </div>
+                    <div class="vertical-split" id="right-split">
+                        <div id="tutorial-panel" class="panel">
+                            <r-helper></r-helper>
+                        </div>
+                        <div id="files-panel" class="panel">
+                            <div class="panel-title">Files</div>
+                            <div class="file-manager">
+                                <div class="file-upload">
+                                    <h3>Upload Data</h3>
+                                    <input type="file" id="file-input" accept=".csv">
+                                    <button id="upload-btn" class="btn">Upload</button>
+                                </div>
+                                <div class="file-list">
+                                    <h3>Your Files</h3>
+                                    <ul id="file-list"></ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
