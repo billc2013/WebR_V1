@@ -4,44 +4,13 @@ webr-repl {
 }
 
 .repl-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    overflow: hidden;
-    position: relative;
-    margin-top: 10px;
-}
-
-.repl-output {
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    font-size: 14px;
-    line-height: 1.5;
-    tab-size: 4;
-    white-space: pre-wrap;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    
-    /* Add these properties */
-    height: 400px;          /* Fixed height - adjust as needed */
-    overflow-y: auto;       /* Add vertical scrollbar when needed */
-    padding: 1rem;          /* Internal spacing */
-    background: #f8f9fa;    /* Light background for better readability */
-    border-radius: 8px 8px 0 0; /* Round top corners to match container */
-  }
-
-.repl-input-wrapper {
-    padding: 1rem;
-    border-top: 1px solid #dee2e6;
-}
-
-.repl-input {
-    width: 100%;
-    padding: 0.5rem;
-    border: 1px solid #dee2e6;
-    border-radius: 4px;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
-    resize: vertical;
-    margin-bottom: 0.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  position: relative;
+  margin-top: 10px;
+  padding-bottom: 10px; /* Add padding to ensure space for controls */
 }
 
 #toggle-helper {
@@ -59,19 +28,19 @@ webr-repl {
     gap: 0.5rem;
   }
   
-  .clear-button {
-    background: #e74c3c;  /* Red color to indicate deletion */
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.9rem;
-  }
-  
-  .clear-button:hover {
-    background: #c0392b;  /* Darker red on hover */
-  }
+.clear-button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.clear-button:hover {
+  background: #c0392b;
+}
 
 .run-button {
     background: #3498db;
@@ -97,4 +66,50 @@ webr-repl {
     height: auto;
     display: block;
     margin: 0 auto;
+}
+
+.terminal-container {
+  width: 100%;
+  height: 400px;
+  border-radius: 8px;
+  overflow: visible; /* Changed from hidden to visible */
+  position: relative;
+  margin-bottom: 75px; /* Increased from 20px to ensure space at bottom */
+  z-index: 9;
+}
+
+.terminal-controls {
+    position: absolute;
+    bottom: 10px; /* Position below the terminal rather than overlapping */
+    right: 10px;
+    z-index: 10;
+}
+
+/* .terminal-controls {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  z-index: 10; / Ensure it's above the terminal but doesn't block interaction /
+  } */
+
+/* Make sure the terminal gets proper styles */
+.xterm {
+  padding: 10px;
+  font-feature-settings: "liga" 0;
+  height: 100%; /* Make xterm fill the container */
+}
+
+/* Override some xterm default styles */
+.xterm-viewport {
+  /* background-color: #f8f9fa !important; */
+  background-color: white;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  /* These additional properties help with scrolling */
+  max-height: 100% !important;
+  width: 100% !important;
+}
+
+.xterm-screen {
+  position: relative;
 }
